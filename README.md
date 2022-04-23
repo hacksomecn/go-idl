@@ -131,3 +131,6 @@ raw [name] {
     type A = "123"
 };
 ```
+
+### parser detail
+Idl currently uses a handwritten parser. About handwritten parser or generated parser like ANTLR、BISON、Yacc, read: https://medium.com/swlh/writing-a-parser-getting-started-44ba70bb6cc9
