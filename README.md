@@ -2,6 +2,12 @@
 go-idl is a micro service api definition and generation tool.
 
 ## IDL specification
+
+### specification describe symbol
+<KeyOrValue>: required pos declare "Key or value"
+[KeyOrValue]: optional pos declare "Key or value"
+VALUE1|VALUE2|VALUE3: value choices
+
 ### file
 source files: IDL parse `.idl` files
 output files: tool can output different file on demands, like .yaml, .json, .proto, .go, etc.
@@ -36,7 +42,7 @@ model User {
 
 ### rest
 ```
-rest POST /app/user/info/update/:user_id, /manage/user/info/update/:user_id {
+rest <UpdateUserInfo> <GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS|TRACE> /app/user/info/update/:user_id, /manage/user/info/update/:user_id {
     req UserInfoReq {
         Header {
             ContentType string `header:"Content-Type"`
@@ -76,13 +82,24 @@ rest POST /app/user/info/update/:user_id, /manage/user/info/update/:user_id {
 
 ### grpc
 ```
-grpc 
+grpc <GetUserInfoHandler> {
+    req GetUserInfoReq {
+    }
+    
+    resp GetUserInfoResp {
+    }
+}
 ```
 
 ### ws
 ```
-ws 
+ws <Name> <UP|DOWN> <1234|CodeHeartBeat> {
+    // ... struct
+}
 ```
+
+### status codes
+TODO
 
 ### import
 ```
