@@ -101,11 +101,17 @@ ws <Name> <UP|DOWN> <1234|CodeHeartBeat> {
 ### status codes
 TODO
 
+### embedded model
+TODO 
+
 ### import
 import go package
 ```
 import "github.com/hacksomecn/go-idl/example/model"
 ```
+
+### source other .gidl file ????
+TODO ???
 
 ### decorator
 use `@` to name a decorator key. Except idl remain `@idl_` prefix,  user can use decorator to define custom symbol, 
