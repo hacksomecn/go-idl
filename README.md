@@ -9,13 +9,13 @@ go-idl is a micro service api definition and generation tool.
 VALUE1|VALUE2|VALUE3: value choices
 
 ### file
-source files: IDL parse `.idl` files
+source files: IDL parse `.gidl` files
 output files: tool can output different file on demands, like .yaml, .json, .proto, .go, etc.
 
 ### syntax
 declare idl syntax specification version.
 ```
-syntax = "0.1.0"; // TODO 版本检查
+syntax = "v0.1.0"; // TODO 版本检查
 ```
 
 ### comment
@@ -102,6 +102,7 @@ ws <Name> <UP|DOWN> <1234|CodeHeartBeat> {
 TODO
 
 ### import
+import go package
 ```
 import "github.com/hacksomecn/go-idl/example/model"
 ```
@@ -132,5 +133,9 @@ raw [name] {
 };
 ```
 
-### parser detail
+## parser detail
 Idl currently uses a handwritten parser. About handwritten parser or generated parser like ANTLR、BISON、Yacc, read: https://medium.com/swlh/writing-a-parser-getting-started-44ba70bb6cc9
+
+## intellij idea editor set up
+- add `File Types` `*.gidl`
+- add `live template` go-idl

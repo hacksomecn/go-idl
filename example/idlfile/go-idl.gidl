@@ -1,0 +1,8 @@
+syntax = "v0.1.0";
+
+
+// 用户信息
+model UserInfo {
+    Id string `json:"id"`
+};
+
