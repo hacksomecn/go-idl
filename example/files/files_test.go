@@ -1,4 +1,4 @@
-package files
+package filess
 
 import (
 	"fmt"
@@ -7,13 +7,15 @@ import (
 )
 
 func TestScan(t *testing.T) {
-	files, err := scanner.Scan("./")
+	files, err := scanner.Scan("./", "")
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	fmt.Println(files)
+	for _, file := range files {
+		fmt.Println(file.Pos)
+	}
 }
 
 func TestName(t *testing.T) {

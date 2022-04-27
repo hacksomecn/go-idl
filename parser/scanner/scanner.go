@@ -10,7 +10,7 @@ import (
 
 func Scan(
 	dirPath string, // file dir path
-	modulePackagePath string, // package path with module name
+	modulePackagePath string, // package path with module name, if empty will find package for path
 ) (files []*ast.IdlFile, err error) {
 	// get package name
 	fileNames, err := FindIdlFiles(dirPath)
@@ -25,8 +25,8 @@ func Scan(
 		return
 	}
 
-	if modulePackagePath != "" {
-		modulePackagePath, err = gopkg.FindModulePackagePath(dirPath)
+	if modulePackagePath == "" {
+		modulePackagePath, err = gopkg.GetModulePackagePath(dirPath)
 		if err != nil {
 			logrus.Errorf(" error: %s", err)
 			return

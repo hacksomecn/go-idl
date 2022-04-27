@@ -8,23 +8,24 @@ import (
 	"golang.org/x/mod/modfile"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 var (
-	GoPath       string
-	GoRoot       string
-	GoExecutable string
-	GoEnvs       GoEnvParams
-	GoModFile    *modfile.File
+	GoPath        string        // go path
+	GoRoot        string        // go root
+	GoExecutable  string        // go binary program
+	GoEnvs        GoEnvParams   // go environment
+	GoModFile     *modfile.File // project go mod file object
+	GoModFilePath string        // go mod file path
+	GoModDir      string        // directory where go.mod placed
+	GoModName     string        // project go module name
 )
 
 type GoEnvParams struct { // go env -json
 	GoMod      string `json:"GOMOD"`
 	GoModCache string `json:"GOMODCACHE"`
-}
-
-func GoModName() string {
-	return GoModFile.Module.Mod.Path
 }
 
 func init() {
@@ -69,11 +70,21 @@ func loadEnv() (err error) {
 		return
 	}
 
-	GoModFile, err = readGoModFile(GoEnvs.GoMod)
+	GoModFilePath = GoEnvs.GoMod
+	GoModFilePath, err = filepath.Abs(GoModFilePath)
+	if err != nil {
+		logrus.Errorf("get abs mod file path failed. error: %s", err)
+		return
+	}
+
+	GoModFile, err = readGoModFile(GoModFilePath)
 	if err != nil {
 		logrus.Errorf("get go mod faile failed. %s", err)
 		return
 	}
+
+	GoModDir = filepath.Dir(GoEnvs.GoMod)
+	GoModName = GoModFile.Module.Mod.Path
 	return
 }
 
@@ -93,13 +104,34 @@ func readGoModFile(goModFilePath string) (goMod *modfile.File, err error) {
 	return
 }
 
-func FindModulePackagePath(
+// GetModulePackagePath find dir package path
+func GetModulePackagePath(
 	dirPath string,
 ) (
 	packagePath string, // package path under module
 	err error,
 ) {
-	// TODO
-	err = fmt.Errorf("need implement FindModulePackagePath")
+	dirPath, err = filepath.Abs(dirPath)
+	if err != nil {
+		logrus.Errorf("get abs path failed. path: %s, error: %s", dirPath, err)
+		return
+	}
+
+	if !strings.HasPrefix(dirPath, GoModDir) {
+		err = fmt.Errorf("dir %s should be under go module: %s", dirPath, GoModDir)
+		return
+	}
+
+	relPath := strings.Replace(dirPath, GoModDir, "", 1)
+	relPathBase := filepath.Base(dirPath)
+	dirPackageName, err := parseDirPackageName(dirPath)
+	if err != nil {
+		logrus.Errorf("parse dir package name failed. error: %s", err)
+		return
+	}
+
+	relPath = strings.Replace(relPath, relPathBase, dirPackageName, 1)
+	packagePath = fmt.Sprintf("%s%s", GoModName, relPath)
+
 	return
 }
