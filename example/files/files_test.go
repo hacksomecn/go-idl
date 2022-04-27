@@ -7,7 +7,7 @@ import (
 )
 
 func TestScan(t *testing.T) {
-	files, err := scanner.Scan("./", "")
+	files, err := scanner.Scan("./dir1", "")
 	if err != nil {
 		t.Error(err)
 		return
