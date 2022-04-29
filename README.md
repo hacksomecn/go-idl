@@ -15,7 +15,7 @@ output files: tool can output different file on demands, like .yaml, .json, .pro
 ### syntax
 declare idl syntax specification version.
 ```
-syntax = "v0.1.0"; // TODO 版本检查
+syntax = "v0.1.0" // TODO 版本检查
 ```
 
 ### comment
@@ -28,8 +28,11 @@ multiple line comment
 */
 ```
 
-### separator
-Use `;` to separate definition. In feature, it may be removed when the IDL parser become smart enough.
+### service
+```
+service ExampleService {
+}
+```
 
 ### model
 ```

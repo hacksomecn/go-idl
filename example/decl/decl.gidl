@@ -1,0 +1,12 @@
+syntax="v0.0.1"
+
+// gidl syntax example
+
+/**
+    this file declare typical use case of go-idl
+*/
+
+model User {
+    Id string `json:"id"`
+}
+
