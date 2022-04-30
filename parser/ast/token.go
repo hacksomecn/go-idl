@@ -68,8 +68,23 @@ func IsBlockEndToken(token Token) (yes bool, startToken Token) {
 }
 
 type TokenPos struct {
-	FilePos   *FilePos `json:"file_pos"` // file pos
-	LinePos   int      `json:"line_pos"`
-	ColumnPos int      `json:"column_pos"`
-	ChPos     int      `json:"ch_pos"` // char pos
+	FilePos *FilePos `json:"file_pos"` // file pos
+
+	Offset int // char offset
+}
+
+type TokenFile struct {
+	Pos         *FilePos `json:"pos"`
+	LineOffsets []int    `json:"line_offsets"` // line offsets
+}
+
+func NewTokenFile(pos *FilePos) *TokenFile {
+	return &TokenFile{
+		Pos:         pos,
+		LineOffsets: make([]int, 0),
+	}
+}
+
+func (m *TokenFile) AddLineOffset(offset int) {
+	m.LineOffsets = append(m.LineOffsets, offset)
 }

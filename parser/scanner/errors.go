@@ -22,31 +22,49 @@
  * THE SOFTWARE.
  */
 
-package ast
+// Package scanner Go-idl scanner error imitates go/scanner/errors.go
+package scanner
 
-type IdlFile struct {
-	*TokenFile
+import (
+	"fmt"
+	"github.com/hacksomecn/go-idl/parser/ast"
+)
 
-	Assigns map[*FilePos]*AssignmentDecl `json:"assigns"` // idl property assignment
-	Import  map[*FilePos]*ImportDecl     `json:"imports"`
-	Models  map[*FilePos]*ModelDecl      `json:"models"`
-	Rests   map[*FilePos]*RestDecl       `json:"rests"`
-	Grpcs   map[*FilePos]*GrpcDecl       `json:"grpcs"`
-	Wss     map[*FilePos]*WsDecl         `json:"wss"`
-	Raws    map[*FilePos]*RawDecl        `json:"raws"`
-
-	Stmts []IDecl `json:"stmts"` // all decl in sequence
+type Error struct {
+	Pos *ast.TokenPos
+	Msg string
 }
 
-func NewIdlFile() (file *IdlFile) {
-	return &IdlFile{
-		Assigns: map[*FilePos]*AssignmentDecl{},
-		Import:  map[*FilePos]*ImportDecl{},
-		Models:  map[*FilePos]*ModelDecl{},
-		Rests:   map[*FilePos]*RestDecl{},
-		Grpcs:   map[*FilePos]*GrpcDecl{},
-		Wss:     map[*FilePos]*WsDecl{},
-		Raws:    map[*FilePos]*RawDecl{},
-		Stmts:   []IDecl{},
+func (m Error) Error() (str string) {
+	if m.Pos != nil {
+		str = fmt.Sprintf("%s: %s", m.Pos.FilePos.FileName, m.Msg)
+	} else {
+		str = m.Msg
 	}
+	return
+}
+
+type ErrorList []*Error
+
+func (m *ErrorList) Add(pos *ast.TokenPos, msg string) {
+	*m = append(*m, &Error{Pos: pos, Msg: msg})
+	return
+}
+
+func (m ErrorList) Error() (str string) {
+	switch len(m) {
+	case 0:
+		return "no errors"
+	case 1:
+		return m[0].Error()
+	}
+	return fmt.Sprintf("%s and (%d) more errors", m[0], len(m)-1)
+}
+
+func (m ErrorList) Err() error {
+	if len(m) == 0 {
+		return nil
+	}
+
+	return m
 }

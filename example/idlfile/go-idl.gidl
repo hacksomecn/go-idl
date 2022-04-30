@@ -3,6 +3,6 @@ syntax = "v0.1.0";
 
 // 用户信息
 model UserInfo {
-    Id string `json:"id"`
+    Id string `json:"id"` // 中文， English
 };
 

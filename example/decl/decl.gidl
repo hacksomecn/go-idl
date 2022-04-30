@@ -6,7 +6,8 @@ syntax="v0.0.1"
     this file declare typical use case of go-idl
 */
 
+// 用户信息
 model User {
-    Id string `json:"id"`
+    Id string `json:"id"` // user_id
 }
 
