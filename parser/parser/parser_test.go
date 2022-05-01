@@ -2,7 +2,7 @@
  * The MIT License (MIT)
  *
  * Copyright © 2022 Hao Luo <haozzzzzzzz@gmail.com>
- *
+
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -23,3 +23,28 @@
  */
 
 package parser
+
+import (
+	"fmt"
+	"github.com/hacksomecn/go-idl/parser/scanner"
+	"testing"
+)
+
+func TestParseFile(t *testing.T) {
+	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/go-idl.gidl", "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	file := files[0]
+	parser, err := NewParser(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	idlFile := parser.parseFile()
+	for _, del := range idlFile.Imports {
+		fmt.Println(string(del.Expr))
+	}
+}

@@ -27,26 +27,34 @@ package ast
 type IdlFile struct {
 	*TokenFile
 
-	Assigns map[*FilePos]*AssignmentDecl `json:"assigns"` // idl property assignment
-	Import  map[*FilePos]*ImportDecl     `json:"imports"`
-	Models  map[*FilePos]*ModelDecl      `json:"models"`
-	Rests   map[*FilePos]*RestDecl       `json:"rests"`
-	Grpcs   map[*FilePos]*GrpcDecl       `json:"grpcs"`
-	Wss     map[*FilePos]*WsDecl         `json:"wss"`
-	Raws    map[*FilePos]*RawDecl        `json:"raws"`
+	Assigns      []*AssignmentDecl `json:"assigns"` // idl property assignment
+	Imports      []*ImportDecl     `json:"imports"`
+	Models       []*ModelDecl      `json:"models"`
+	Rests        []*RestDecl       `json:"rests"`
+	Grpcs        []*GrpcDecl       `json:"grpcs"`
+	Wss          []*WsDecl         `json:"wss"`
+	Raws         []*RawDecl        `json:"raws"`
+	CommentGroup CommentGroup      `json:"comment_group"`
 
-	Stmts []IDecl `json:"stmts"` // all decl in sequence
+	Decls []IDecl `json:"decls" ` // all decl in sequence
 }
 
-func NewIdlFile() (file *IdlFile) {
+func NewIdlFile(tokenFile *TokenFile) (file *IdlFile) {
 	return &IdlFile{
-		Assigns: map[*FilePos]*AssignmentDecl{},
-		Import:  map[*FilePos]*ImportDecl{},
-		Models:  map[*FilePos]*ModelDecl{},
-		Rests:   map[*FilePos]*RestDecl{},
-		Grpcs:   map[*FilePos]*GrpcDecl{},
-		Wss:     map[*FilePos]*WsDecl{},
-		Raws:    map[*FilePos]*RawDecl{},
-		Stmts:   []IDecl{},
+		TokenFile:    tokenFile,
+		Assigns:      []*AssignmentDecl{},
+		Imports:      []*ImportDecl{},
+		Models:       []*ModelDecl{},
+		Rests:        []*RestDecl{},
+		Grpcs:        []*GrpcDecl{},
+		Wss:          []*WsDecl{},
+		Raws:         []*RawDecl{},
+		CommentGroup: CommentGroup{},
+		Decls:        []IDecl{},
 	}
+}
+
+func (m *IdlFile) AddImport(imp *ImportDecl) {
+	m.Imports = append(m.Imports, imp)
+	m.Decls = append(m.Decls, imp)
 }

@@ -2,6 +2,8 @@ package scanner
 
 import (
 	"fmt"
+	"github.com/hacksomecn/go-idl/parser/ast"
+	"io/ioutil"
 	"testing"
 )
 
@@ -30,14 +32,21 @@ func TestScanFiles(t *testing.T) {
 }
 
 func TestNext(t *testing.T) {
-	path := "/Users/hao/Documents/Projects/Github/go-idl/example/decl/decl.gidl"
+	path := "/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/go-idl.gidl"
 	files, _, err := ScanFiles(path, "")
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	file := files[0]
-	scanner, err := NewScanner(file, nil)
+
+	src, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	scanner, err := NewScanner(file, src)
 	if err != nil {
 		t.Error(err)
 		return
@@ -50,5 +59,35 @@ func TestNext(t *testing.T) {
 
 		fmt.Printf("%s", string(scanner.ch))
 		scanner.next()
+	}
+}
+
+func TestScan(t *testing.T) {
+	path := "/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/go-idl.gidl"
+	files, _, err := ScanFiles(path, "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	file := files[0]
+
+	src, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	scanner, err := NewScanner(file, src)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for {
+		pos, token, lit := scanner.Scan()
+		fmt.Println(pos, token, lit)
+		if token == ast.EOF {
+			break
+		}
 	}
 }

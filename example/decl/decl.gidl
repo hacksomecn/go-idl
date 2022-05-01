@@ -11,3 +11,6 @@ model User {
     Id string `json:"id"` // user_id
 }
 
+
+rest "/api, /api2/*api" {
+}

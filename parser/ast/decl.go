@@ -24,18 +24,20 @@
 
 package ast
 
+import (
+	"fmt"
+)
+
 type FilePos struct {
 	Package  string `json:"package"`
 	FileName string `json:"file_name"`
 	Name     string `json:"name"`
 	FilePath string `json:"file_path"`
-	Start    int    `json:"start"` // start pos in file
-	End      int    `json:"end"`   // end pos in file
 }
 
 // Decl definition declare
 type Decl struct {
-	Expr string    // expr string
+	Expr []byte    // expr string
 	Pos  *TokenPos // declare pos
 }
 
@@ -43,12 +45,54 @@ type IDecl interface {
 	Help() string // declare syntax help text
 }
 
+// An Ident node represents an identifier.
+type Ident struct {
+	Pos  *TokenPos
+	Name string
+}
+
+type BasicLit struct {
+	Pos   *TokenPos // literal position
+	Kind  Token     // token.INT, token.FLOAT, token.IMAG, token.CHAR, or token.STRING
+	Value string    // literal string; e.g. 42, 0x7f, 3.14, 1e-9, 2.4i, 'a', '\x7f', "foo" or `\m\n\o`
+}
+
+// A Comment node represents a single //-style or /*-style comment.
+//
+// The Text field contains the comment text without carriage returns (\r) that
+// may have been present in the source. Because a comment's end position is
+// computed using len(Text), the position reported by End() does not match the
+// true source end position for comments containing carriage returns.
+type Comment struct {
+	Pos  *TokenPos // position of "/" starting the comment
+	Text string    // comment text (excluding '\n' for //-style comments)
+}
+
+func (c *Comment) Start() *TokenPos { return c.Pos }
+func (c *Comment) End() *TokenPos {
+	return NewTokenPos(c.Pos.FilePos, int(c.Pos.Offset+len(c.Text)))
+}
+
+func (c *Comment) String() string {
+	return fmt.Sprintf("%s %s", c.Pos.String(), c.Text)
+}
+
+// A CommentGroup represents a sequence of comments
+// with no other tokens and no empty lines between.
+//
+type CommentGroup struct {
+	List []*Comment // len(List) > 0
+}
+
+func (g *CommentGroup) Pos() *TokenPos { return g.List[0].Start() }
+func (g *CommentGroup) End() *TokenPos { return g.List[len(g.List)-1].End() }
+
 type AssignmentDecl struct {
 	Decl
 }
 
 func (m *AssignmentDecl) Help() string {
-	return `format: <KEY>=<VALUE: golang type>`
+	return `format: <KEY>=<Value: golang type>`
 }
 
 type CommentDecl struct {
@@ -62,10 +106,23 @@ usage: // for single line comment and /**/ for multiple line comment`
 
 type ImportDecl struct {
 	Decl
+	Doc       *CommentGroup
+	Tok       Token
+	LparenPos *TokenPos
+	RparenPos *TokenPos
+	Specs     []*ImportSpec
 }
 
 func (m *ImportDecl) Help() string {
 	return "format: import \"<golang module name>\""
+}
+
+// An ImportSpec node represents a single package import.
+type ImportSpec struct {
+	Doc     *CommentGroup // associated documentation; or nil
+	Comment *CommentGroup // local package name (including "."); or nil
+	Name    *Ident        // import path
+	Path    *BasicLit     // line comments; or nil
 }
 
 type DecoratorDecl struct {

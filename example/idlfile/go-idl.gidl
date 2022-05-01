@@ -1,8 +1,41 @@
-syntax = "v0.1.0";
+syntax = "v0.1.0"
 
+// import doc 1
+// import doc 2
+// import doc 3
+import (
+    . "fmt"
+    _ "math"
+    m "math"
+    "os"
+)
+
+// import lead comment
+import "github.com/hacksomecn/go-idl/example/files" // import line comment abc
+
+import "github.com/hacksomcn/go-idl/cmd"
+
+// line comment
+/*
+    multi line comment
+    line 1
+    line 2
+    line 3
+    line 4
+*/
+
+model Base {
+}
 
 // 用户信息
 model UserInfo {
-    Id string `json:"id"` // 中文， English
-};
+    Base
+
+    Id string `json:"id"` // id 中文， English
+    Name string `json:"name"` // name
+    Address string `json:"address"`  // address
+    Obj {
+        ObjId string `json:"obj_id"` // object_id
+    }
+}
 

@@ -22,28 +22,112 @@
  * THE SOFTWARE.
  */
 
+// Package ast imitate go/token/token.go
 package ast
 
+import "fmt"
+
+// Token is the set of lexical tokens of the go-idl programming language.
 type Token string
 
+func (m Token) String() string {
+	return string(m)
+}
+
+// The list of tokens.
 const (
-	COMMENT   Token = "comment"
-	SYNTAX    Token = "syntax"
-	SERVICE   Token = "service"
-	MODEL     Token = "model"
-	REST      Token = "rest"
-	GRPC      Token = "grpc"
-	WS        Token = "ws"
-	IMPORT    Token = "import"
-	RAW       Token = "raw"
-	DECORATOR Token = "@"
-	LPAREN    Token = "("
-	LBRACE    Token = "{"
-	COMMA     Token = ","
-	PERIOD    Token = "."
-	RPAREN    Token = ")"
-	RBRACE    Token = "}"
+	// Special tokens
+
+	ILLEGAL Token = "ILLEGAL"
+	EOF           = "EOF"
+	COMMENT       = "COMMENT"
+	NEWLINE       = "NEWLINE"
+
+	//literalBeg
+	// Identifiers and basic type literals
+	// (these tokens stand for classes of literals)
+
+	IDENT  = "IDENT"  // main, func name, different declare content
+	INT    = "INT"    // 12345
+	FLOAT  = "FLOAT"  // 123.45
+	IMAG   = "IMAG"   // 123.45i
+	CHAR   = "CHAR"   // 'a'
+	STRING = "STRING" // "abc"
+	//literalEnd
+
+	//operatorBeg
+	// Operators and delimiters
+
+	ASSIGN = "=" // =
+
+	LPAREN = "(" // (
+	LBRACK = "[" // [
+	LBRACE = "{" // {
+	COMMA  = "," // ,
+	PERIOD = "." // .
+
+	RPAREN = ")" // )
+	RBRACK = "]" // ]
+	RBRACE = "}" // }
+	//SEMICOLON // ;
+	//COLON // :
+	//operatorEnd
+
+	//keywordBeg
+	//Keywords
+
+	SYNTAX    = "SYNTAX"  // syntax
+	SERVICE   = "SERVICE" // service
+	MODEL     = "MODEL"   // model
+	REST      = "REST"    // rest
+	GRPC      = "GRPC"    // grpc
+	WS        = "WS"      // ws
+	IMPORT    = "IMPORT"  // import
+	RAW       = "RAW"     // raw
+	DECORATOR = "@"       // @
+	//keywordEnd
 )
+
+var keywords = map[string]Token{
+	"syntax":  SYNTAX,
+	"service": SERVICE,
+	"model":   MODEL,
+	"rest":    REST,
+	"grpc":    GRPC,
+	"ws":      WS,
+	"import":  IMPORT,
+	"raw":     RAW,
+	"@":       DECORATOR,
+}
+
+var operators = map[rune]Token{
+	'=': ASSIGN,
+
+	'(': LPAREN,
+	'[': LBRACK,
+	'{': LBRACE,
+	',': COMMA,
+	'.': PERIOD,
+
+	')': RPAREN,
+	']': RBRACK,
+	'}': RBRACE,
+	//';': SEMICOLON,
+	//':': COLON,
+}
+
+// LookupKeywordIdent maps an identifier to its keyword token or IDENT (if not a keyword).
+func LookupKeywordIdent(ident string) Token {
+	if tok, isKeyword := keywords[ident]; isKeyword {
+		return tok
+	}
+	return IDENT
+}
+
+func LookupOperatorToken(ch rune) (token Token, exists bool) {
+	token, exists = operators[ch]
+	return
+}
 
 // BlockTokenPair block pair token
 var BlockTokenPair = map[Token]Token{ // start_token -> close_token
@@ -70,7 +154,25 @@ func IsBlockEndToken(token Token) (yes bool, startToken Token) {
 type TokenPos struct {
 	FilePos *FilePos `json:"file_pos"` // file pos
 
-	Offset int // char offset
+	LineNo     int // line no
+	LineOffset int // line offset
+	Offset     int // char offset
+}
+
+func NewTokenPos(filePos *FilePos, charOffset int) *TokenPos {
+	return &TokenPos{
+		FilePos: filePos,
+		Offset:  charOffset,
+	}
+}
+
+func (m *TokenPos) String() string {
+	return fmt.Sprintf("%s:L%d", m.FilePos.FilePath, m.LineNo)
+}
+
+// IsValid reports whether the position is valid.
+func (m *TokenPos) IsValid() bool {
+	return m != nil && m.Offset > 0
 }
 
 type TokenFile struct {
