@@ -48,3 +48,22 @@ func TestParseFile(t *testing.T) {
 		fmt.Println(string(del.Expr))
 	}
 }
+
+func TestParseFileAssign(t *testing.T) {
+	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/go-idl.gidl", "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	file := files[0]
+	parser, err := NewParser(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	idlFile := parser.parseFile()
+	for _, del := range idlFile.Assigns {
+		fmt.Println(string(del.Expr))
+	}
+}

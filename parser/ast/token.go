@@ -100,6 +100,11 @@ var keywords = map[string]Token{
 	"@":       DECORATOR,
 }
 
+// system variable
+var sysVariables = map[string]Token{
+	"syntax": SYNTAX,
+}
+
 var operators = map[rune]Token{
 	'=': ASSIGN,
 
@@ -119,6 +124,13 @@ var operators = map[rune]Token{
 // LookupKeywordIdent maps an identifier to its keyword token or IDENT (if not a keyword).
 func LookupKeywordIdent(ident string) Token {
 	if tok, isKeyword := keywords[ident]; isKeyword {
+		return tok
+	}
+	return IDENT
+}
+
+func LookupSysVarIdent(ident string) Token {
+	if tok, isSysVar := sysVariables[ident]; isSysVar {
 		return tok
 	}
 	return IDENT

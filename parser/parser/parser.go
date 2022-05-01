@@ -363,9 +363,48 @@ func (m *Parser) parseIdent() *ast.Ident {
 }
 
 func (m *Parser) parseAssignment() (decl ast.IDecl) {
-	// TODO temp
+	pos := m.pos
+	lit := m.lit
+	tok := m.tok
+
+	exprStart := pos.Offset
+	if m.lastLeadComment != nil {
+		exprStart = m.lastLeadComment.Pos().Offset
+	}
+
 	m.next()
-	return
+	m.expect(ast.ASSIGN)
+
+	valuePos := m.pos
+	valueTok := m.tok
+	valueLit := m.lit
+	exprEnd := valuePos.Offset + len(valueLit)
+	if m.lastLineComment != nil {
+		exprEnd = m.lastLineComment.End().Offset
+	}
+
+	assignDecl := &ast.AssignmentDecl{
+		Decl: ast.Decl{
+			Expr: m.src[exprStart : exprEnd+1],
+			Pos:  pos,
+		},
+		Doc:     m.lastLeadComment,
+		Comment: m.lastLineComment,
+		Tok:     tok,
+		Spec: &ast.ValueSpec{
+			Name: &ast.Ident{
+				Pos:  pos,
+				Name: lit,
+			},
+			Value: &ast.BasicLit{
+				Pos:   valuePos,
+				Kind:  valueTok,
+				Value: valueLit,
+			},
+		},
+	}
+	m.idlFile.AddAssign(assignDecl)
+	return assignDecl
 }
 
 func (m *Parser) parseService() (decl ast.IDecl) {

@@ -1,4 +1,6 @@
-syntax = "v0.1.0"
+syntax = "v0.1.0" // support v0.1.0 below
+abc =123 // not supported
+efg = .123f // not supported keyword
 
 // import doc 1
 // import doc 2

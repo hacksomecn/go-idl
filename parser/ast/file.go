@@ -54,6 +54,11 @@ func NewIdlFile(tokenFile *TokenFile) (file *IdlFile) {
 	}
 }
 
+func (m *IdlFile) AddAssign(assign *AssignmentDecl) {
+	m.Assigns = append(m.Assigns, assign)
+	m.Decls = append(m.Decls, assign)
+}
+
 func (m *IdlFile) AddImport(imp *ImportDecl) {
 	m.Imports = append(m.Imports, imp)
 	m.Decls = append(m.Decls, imp)

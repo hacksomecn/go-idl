@@ -87,21 +87,30 @@ type CommentGroup struct {
 func (g *CommentGroup) Pos() *TokenPos { return g.List[0].Start() }
 func (g *CommentGroup) End() *TokenPos { return g.List[len(g.List)-1].End() }
 
+//type CommentDecl struct {
+//	Decl
+//}
+//
+//func (m *CommentDecl) Help() string {
+//	return `format: // or /**/
+//usage: // for single line comment and /**/ for multiple line comment`
+//}
+
 type AssignmentDecl struct {
 	Decl
+	Doc     *CommentGroup
+	Comment *CommentGroup
+	Tok     Token
+	Spec    *ValueSpec
 }
 
 func (m *AssignmentDecl) Help() string {
 	return `format: <KEY>=<Value: golang type>`
 }
 
-type CommentDecl struct {
-	Decl
-}
-
-func (m *CommentDecl) Help() string {
-	return `format: // or /**/
-usage: // for single line comment and /**/ for multiple line comment`
+type ValueSpec struct {
+	Name  *Ident
+	Value *BasicLit
 }
 
 type ImportDecl struct {

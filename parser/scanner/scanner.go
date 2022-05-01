@@ -42,7 +42,7 @@ import (
 
 // ScanFiles scan .gidl files in dir
 func ScanFiles(
-	path string,              // file or dir path
+	path string, // file or dir path
 	modulePackagePath string, // package path with module name, if empty will find package for path
 ) (
 	files []*ast.TokenFile,
@@ -302,6 +302,9 @@ func (m *Scanner) Scan() (pos *ast.TokenPos, tok ast.Token, lit string) {
 			} else {
 				tok = ast.IDENT
 			}
+
+		case '=':
+			tok = ast.ASSIGN
 
 		default:
 			var isOperator bool
