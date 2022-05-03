@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"github.com/hacksomecn/go-idl/parser/ast"
 	"github.com/hacksomecn/go-idl/parser/scanner"
+	"reflect"
 	"testing"
 )
 
@@ -137,8 +138,8 @@ func TestParseFileModel(t *testing.T) {
 			if field.Tag != nil {
 				fmt.Printf("\t\ttag: %+v\n", field.Tag.Value)
 			}
-			fmt.Println("\t\texported", field.Exported)
-			fmt.Println("\t\tembedded", field.Embedded)
+			fmt.Println("\t\texported:", field.Exported)
+			fmt.Println("\t\tembedded:", field.Embedded)
 			fmt.Println("\t\ttype:", field.Type)
 			switch subType := field.Type.(type) {
 			case *ast.ModelType:
@@ -171,6 +172,8 @@ func TestParseFileModel(t *testing.T) {
 					}
 					fmt.Println()
 				}
+			case *ast.ArrayType:
+				fmt.Println("\t\t\telem:", reflect.TypeOf(subType.ElemType), subType.ElemType.TypeName())
 			}
 			fmt.Println()
 		}

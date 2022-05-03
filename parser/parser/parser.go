@@ -476,6 +476,79 @@ func (m *Parser) parseNamedModelSpec() (spec *ast.ModelType) {
 	return
 }
 
+func (m *Parser) parseType() (iType ast.IType) {
+	switch m.tok {
+	case ast.IDENT:
+		iType = m.parseTypeName(nil)
+		return
+
+	case ast.LBRACE: // { anonymous struct
+		modelSpec := m.parseModelSpec()
+		modelSpec.Anonymous = true
+		iType = modelSpec
+		return
+
+	case ast.LBRACK: // array
+		iType = m.parseArrayType()
+		return
+
+	case ast.MAP: // map
+
+	case ast.INTERFACE: // interface
+
+	default:
+		iType = ast.UnknownType
+	}
+	return
+}
+
+func (m *Parser) parseTypeName(
+	ident *ast.Ident,
+) (
+	iType ast.IType,
+) {
+	var pos *ast.TokenPos
+	if ident == nil {
+		pos = m.pos
+		ident = m.parseIdent()
+	} else {
+		pos = ident.Pos
+	}
+
+	if m.tok == ast.PERIOD {
+		// ident is a package name
+		m.next()
+		sel := m.parseIdent()
+		fullName := fmt.Sprintf("%s.%s", ident.Name, sel.Name)
+		typeRef := &ast.TypeRef{
+			Type: ast.Type{
+				Name: &ast.Ident{
+					Pos:  pos,
+					Name: fullName,
+				},
+				TypePos: pos,
+				TypeEnd: ast.NewTokenPos(pos.FilePos, pos.Offset+len(fullName)),
+			},
+			Package: ident,
+			RefType: nil,
+		}
+		iType = typeRef
+		return
+	}
+
+	typeRef := &ast.TypeRef{
+		Type: ast.Type{
+			Name:    ident,
+			TypePos: pos,
+			TypeEnd: ast.NewTokenPos(pos.FilePos, pos.Offset+len(ident.Name)),
+		},
+		Package: nil,
+		RefType: nil,
+	}
+	iType = typeRef
+	return
+}
+
 func (m *Parser) parseModelSpec() (spec *ast.ModelType) {
 	doc := m.lastLeadComment
 	lbrace := m.expect(ast.LBRACE)
@@ -493,7 +566,14 @@ func (m *Parser) parseModelSpec() (spec *ast.ModelType) {
 	rbrace := m.expect(ast.RBRACE)
 
 	spec = &ast.ModelType{
-		TypePos: lbrace,
+		Type: ast.Type{
+			Name: &ast.Ident{
+				Pos:  lbrace,
+				Name: "model",
+			},
+			TypePos: lbrace,
+			TypeEnd: rbrace,
+		},
 		Doc:     doc,
 		Comment: comment,
 		Opening: lbrace,
@@ -608,64 +688,24 @@ func IsExported(name string) bool {
 	return unicode.IsUpper(ch)
 }
 
-func (m *Parser) parseType() (iType ast.IType) {
-	switch m.tok {
-	case ast.IDENT:
-		iType = m.parseTypeName(nil)
-		return
-
-	case ast.LBRACE: // { anonymous struct
-		modelSpec := m.parseModelSpec()
-		modelSpec.Anonymous = true
-		iType = modelSpec
-		return
-
-	case ast.LBRACK: // array
-
-	case ast.MAP: // map
-
-	case ast.INTERFACE: // interface
-
-	default:
-		iType = ast.UnknownType
-	}
-	return
-}
-
-func (m *Parser) parseTypeName(
-	ident *ast.Ident,
-) (
-	iType ast.IType,
-) {
-	var pos *ast.TokenPos
-	if ident == nil {
-		pos = m.pos
-		ident = m.parseIdent()
-	} else {
-		pos = ident.Pos
-	}
-
-	if m.tok == ast.PERIOD {
-		// ident is a package name
-		m.next()
-		sel := m.parseIdent()
-		typeRef := &ast.TypeRef{
+// []T
+func (m *Parser) parseArrayType() (arrayType *ast.ArrayType) {
+	pos := m.pos
+	lbrack := m.expect(ast.LBRACK)
+	// not support [len] or [...] yet
+	m.expect(ast.RBRACK)
+	elt := m.parseType()
+	arrayType = &ast.ArrayType{
+		Type: ast.Type{
+			Name: &ast.Ident{
+				Pos:  pos,
+				Name: fmt.Sprintf("[]%s", elt.TypeName()),
+			},
 			TypePos: pos,
-			Name:    sel,
-			Package: ident,
-			Type:    nil,
-		}
-		iType = typeRef
-		return
+			TypeEnd: ast.NewTokenPos(pos.FilePos, lbrack.Offset+elt.End().Offset),
+		},
+		ElemType: elt,
 	}
-
-	typeRef := &ast.TypeRef{
-		TypePos: pos,
-		Name:    ident,
-		Package: nil,
-		Type:    nil,
-	}
-	iType = typeRef
 	return
 }
 

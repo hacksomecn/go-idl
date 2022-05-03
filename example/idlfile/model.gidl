@@ -37,4 +37,12 @@ model UserInfo { // container user contact address
         } `json:"style"`
 
     } `json:"dress"`
+
+    // not exported
+    secret string `json:"secret"`
+    Nicknames []string `json:"nicknames"`
+
+    Hobis []{
+        Name string `json:"name"`
+    } `json:"hobis"`
 }

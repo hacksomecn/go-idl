@@ -24,45 +24,54 @@
 
 package ast
 
-import "strings"
+import (
+	"strings"
+)
 
 type IType interface {
+	TypeName() *Ident
 	Pos() *TokenPos
 	End() *TokenPos
 }
 
 type Type struct {
+	Name    *Ident
+	TypePos *TokenPos
+	TypeEnd *TokenPos
+}
+
+func (m *Type) TypeName() *Ident {
+	return m.Name
 }
 
 func (m *Type) Pos() *TokenPos {
-	return &TokenPos{}
+	return m.TypePos
 }
 
 func (m *Type) End() *TokenPos {
-	return &TokenPos{}
+	return m.TypeEnd
 }
 
-var UnknownType = &Type{}
+var UnknownType = &Type{
+	Name: &Ident{
+		Pos:  nil,
+		Name: "Unknown",
+	},
+	TypePos: nil,
+	TypeEnd: nil,
+}
 
 type ModelType struct {
-	TypePos *TokenPos
+	Type
+
 	Doc     *CommentGroup
 	Comment *CommentGroup
-	Name    *Ident
 
 	Opening *TokenPos
 	Fields  []*ModelField
 	Closing *TokenPos
 
 	Anonymous bool // no name
-}
-
-func (m *ModelType) Pos() *TokenPos {
-	return m.TypePos
-}
-
-func (m *ModelType) End() *TokenPos {
-	return m.Closing
 }
 
 type StructType = ModelType
@@ -113,58 +122,25 @@ func splitTag(strTag string) (mParts map[string]string) {
 
 // TypeRef Refer to type
 type TypeRef struct {
-	TypePos *TokenPos
-	Name    *Ident
+	Type
+
 	Package *Ident
-	Type    IType
-}
-
-func (m *TypeRef) Pos() *TokenPos {
-	return m.TypePos
-}
-
-func (m *TypeRef) End() *TokenPos {
-	return NewTokenPos(m.TypePos.FilePos, m.TypePos.Offset+len(m.Name.Name))
+	RefType IType
 }
 
 type ArrayType struct {
-	TypePos  *TokenPos
-	Name     *Ident
+	Type
+
 	ElemType IType
 }
 
-func (m *ArrayType) Pos() *TokenPos {
-	return m.TypePos
-}
-
-func (m *ArrayType) End() *TokenPos {
-	return m.ElemType.End()
-}
-
 type MapType struct {
-	TypePos  *TokenPos
-	Name     *Ident
+	Type
+
 	KeyType  IType
 	ElemType IType
 }
 
-func (m *MapType) Pos() *TokenPos {
-	return m.TypePos
-}
-
-func (m *MapType) End() *TokenPos {
-	return m.ElemType.End()
-}
-
 type InterfaceType struct {
-	TypePos *TokenPos
-	Name    *Ident
-}
-
-func (m *InterfaceType) Pos() *TokenPos {
-	return m.TypePos
-}
-
-func (m *InterfaceType) End() *TokenPos {
-	return NewTokenPos(m.TypePos.FilePos, m.TypePos.Offset+len(m.Name.Name))
+	Type
 }
