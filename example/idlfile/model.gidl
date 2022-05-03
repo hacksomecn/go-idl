@@ -14,9 +14,14 @@ model Base { // contain create time and update time
     UTime time.Time `json:"utime"` // update time
 }
 
+model Base2 {
+    A string
+}
+
 // user info model
 model UserInfo { // container user contact address
     Base `doc:",skip"`
+    *Base2
 
     // user id
     Id int64 `json:"id"`  // int64
@@ -54,4 +59,8 @@ model UserInfo { // container user contact address
 
     Plan1 interface `json:"plan1"`
     Plan2 interface{} `json:"plan2"`
+
+    Base1 Base `json:"base1"`
+    Base2 *Base `json:"base2"`
+    Base3 *{} `json:"base3"`
 }

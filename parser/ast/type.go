@@ -29,7 +29,7 @@ import (
 )
 
 type IType interface {
-	TypeName() *Ident
+	TypeNameIdent() *Ident
 	Pos() *TokenPos
 	End() *TokenPos
 }
@@ -40,7 +40,7 @@ type Type struct {
 	TypeEnd *TokenPos
 }
 
-func (m *Type) TypeName() *Ident {
+func (m *Type) TypeNameIdent() *Ident {
 	return m.Name
 }
 
@@ -143,4 +143,9 @@ type MapType struct {
 
 type InterfaceType struct {
 	Type
+}
+
+type PointerType struct {
+	Type
+	BaseType IType
 }

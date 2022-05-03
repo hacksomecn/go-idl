@@ -498,9 +498,13 @@ func (m *Parser) parseType() (iType ast.IType) {
 	case ast.INTERFACE: // interface
 		return m.parseInterfaceType()
 
+	case ast.Star:
+		return m.parsePointerType()
+
 	default:
 		iType = ast.UnknownType
 	}
+
 	return
 }
 
@@ -557,10 +561,10 @@ func (m *Parser) parseModelSpec() (spec *ast.ModelType) {
 	comment := m.lastLineComment
 	fields := make([]*ast.ModelField, 0)
 
-	// TypeName
-	// *TypeName
-	// Field TypeName
-	// Field *TypeName
+	// TypeNameIdent
+	// *TypeNameIdent
+	// Field TypeNameIdent
+	// Field *TypeNameIdent
 	for m.tok == ast.IDENT || m.tok == ast.Star {
 		fields = append(fields, m.parseField())
 	}
@@ -589,24 +593,28 @@ func (m *Parser) parseModelSpec() (spec *ast.ModelType) {
 func (m *Parser) parseField() (field *ast.ModelField) {
 	doc := m.lastLeadComment
 	pos := m.pos
-	field = &ast.ModelField{}
-	if m.tok != ast.IDENT {
-		m.errorf(m.pos, "illegal model field. token: %+v", m.tok)
-		return
-	}
 
-	name := m.parseIdent()
 	var typ ast.IType
+	var name *ast.Ident
 	embedded := false
-	// embedded type
-	if m.tok == ast.PERIOD || // package module
-		m.tok == ast.STRING || // field tag
-		m.tok == ast.SEMICOLON || // end declare
-		m.tok == ast.RBRACE { // end type
-		typ = m.parseTypeName(name)
+	if m.tok == ast.IDENT { // field name or embedded type
+		name = m.parseIdent()
+		if m.tok == ast.PERIOD || // package module
+			m.tok == ast.STRING || // field tag
+			m.tok == ast.SEMICOLON || // end declare
+			m.tok == ast.RBRACE { // end type
+			typ = m.parseTypeName(name)
+			embedded = true
+		} else {
+			typ = m.parseType()
+		}
+
+	} else if m.tok == ast.Star {
+		typ = m.parsePointerType()
+		name = typ.TypeNameIdent()
 		embedded = true
 	} else {
-		typ = m.parseType()
+		m.errorf(pos, "unsupported tok for field. %s", m.tok)
 	}
 
 	var tag *ast.FieldTag
@@ -701,7 +709,7 @@ func (m *Parser) parseArrayType() (arrayType *ast.ArrayType) {
 		Type: ast.Type{
 			Name: &ast.Ident{
 				Pos:  pos,
-				Name: fmt.Sprintf("[]%s", elt.TypeName()),
+				Name: fmt.Sprintf("[]%s", elt.TypeNameIdent().Name),
 			},
 			TypePos: pos,
 			TypeEnd: ast.NewTokenPos(pos.FilePos, lbrack.Offset+elt.End().Offset),
@@ -722,7 +730,7 @@ func (m *Parser) parseMapType() (mapType *ast.MapType) {
 		Type: ast.Type{
 			Name: &ast.Ident{
 				Pos:  pos,
-				Name: fmt.Sprintf("map[%s]%s", key.TypeName(), elt.TypeName()),
+				Name: fmt.Sprintf("map[%s]%s", key.TypeNameIdent().Name, elt.TypeNameIdent().Name),
 			},
 			TypePos: pos,
 			TypeEnd: elt.End(),
@@ -751,6 +759,24 @@ func (m *Parser) parseInterfaceType() (interfaceType *ast.InterfaceType) {
 			TypePos: pos,
 			TypeEnd: end,
 		},
+	}
+	return
+}
+
+func (m *Parser) parsePointerType() (pointerType *ast.PointerType) {
+	pos := m.expect(ast.Star)
+	base := m.parseType()
+
+	pointerType = &ast.PointerType{
+		Type: ast.Type{
+			Name: &ast.Ident{
+				Pos:  pos,
+				Name: fmt.Sprintf("*%s", base.TypeNameIdent().Name),
+			},
+			TypePos: pos,
+			TypeEnd: base.End(),
+		},
+		BaseType: base,
 	}
 	return
 }
