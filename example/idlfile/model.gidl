@@ -1,0 +1,29 @@
+import "abc/efg"
+
+import (
+    "123123"
+    _ "456"
+    abc "456"
+)
+
+syntax="v0.0.1"
+
+// basic model
+model Base { // contain create time and update time
+    CTime time.Time `json:"ctime"` // create time
+    UTime time.Time `json:"utime"` // update time
+}
+
+// user info model
+model UserInfo { // container user contact address
+    Base
+
+    // user id
+    Id int64 `json:"id"`  // int64
+
+    // user name
+    Name string `json:"name"` // string
+
+    // user address
+    Address string `json:"address"` // string
+}

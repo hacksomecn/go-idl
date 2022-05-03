@@ -37,7 +37,7 @@ type Error struct {
 
 func (m Error) Error() (str string) {
 	if m.Pos != nil {
-		str = fmt.Sprintf("%s: %s", m.Pos.FilePos.FileName, m.Msg)
+		str = fmt.Sprintf("%s:LINE%d %s", m.Pos.FilePos.FileName, m.Pos.LineNo, m.Msg)
 	} else {
 		str = m.Msg
 	}

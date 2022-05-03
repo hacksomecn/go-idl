@@ -65,5 +65,79 @@ func TestParseFileAssign(t *testing.T) {
 	idlFile := parser.parseFile()
 	for _, del := range idlFile.Assigns {
 		fmt.Println(string(del.Expr))
+		fmt.Println(del.Tok)
+		fmt.Println(del.Spec.Name, del.Spec.Value)
+	}
+}
+
+func TestPrintToken0(t *testing.T) {
+	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/model.gidl", "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	file := files[0]
+	parser, err := NewParser(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	parser.printToken0()
+	err = parser.errors.Err()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func TestParseFileModel(t *testing.T) {
+	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/model.gidl", "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	file := files[0]
+	parser, err := NewParser(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	idlFile := parser.parseFile()
+	err = parser.errors.Err()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for idx, model := range idlFile.Models {
+		_ = idx
+		fmt.Println(model.Pos)
+		fmt.Println(string(model.Expr))
+
+		fmt.Println("model doc:", model.Doc)
+		fmt.Println("model comment:", model.Comment)
+		fmt.Println("model token:", model.Tok)
+		fmt.Println("model spec:")
+		spec := model.Spec
+		fmt.Println("\tpos:", spec.TypePos)
+		fmt.Println("\tdoc: ", spec.Doc)
+		fmt.Println("\tcomment: ", spec.Comment)
+		fmt.Println("\tname: ", spec.Name)
+		fmt.Println("\tfields:")
+		for _, field := range spec.Fields {
+			fmt.Println("\t\tpos:", field.Pos)
+			fmt.Println("\t\tdoc:", field.Doc)
+			fmt.Println("\t\tcomment: ", field.Comment)
+			fmt.Println("\t\tname: ", field.Name)
+			fmt.Println("\t\ttype:", field.Type)
+			fmt.Printf("\t\ttag: %+v\n", field.Tag)
+			fmt.Println("\t\texported", field.Exported)
+			fmt.Println("\t\tembedded", field.Embedded)
+			fmt.Println()
+		}
 	}
 }

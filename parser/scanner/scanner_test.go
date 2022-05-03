@@ -63,7 +63,8 @@ func TestNext(t *testing.T) {
 }
 
 func TestScan(t *testing.T) {
-	path := "/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/go-idl.gidl"
+	//path := "/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/go-idl.gidl"
+	path := "/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/model.gidl"
 	files, _, err := ScanFiles(path, "")
 	if err != nil {
 		t.Error(err)
@@ -89,5 +90,11 @@ func TestScan(t *testing.T) {
 		if token == ast.EOF {
 			break
 		}
+	}
+
+	err = scanner.ErrorList.Err()
+	if err != nil {
+		t.Error(err)
+		return
 	}
 }

@@ -33,6 +33,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 type Parser struct {
@@ -52,6 +53,13 @@ type Parser struct {
 	pos *ast.TokenPos // token position
 	tok ast.Token     // one token look-ahead
 	lit string        // token literal
+
+	// Error recovery
+	// (used to limit the number of calls to parser.advance
+	// w/o making scanning progress - avoids potential endless
+	// loops across multiple parser functions during error recovery)
+	syncPos ast.TokenPos // last synchronization position
+	syncCnt int          // number of parser.advance calls without progress
 
 }
 
@@ -82,6 +90,10 @@ func (m *Parser) init() (err error) {
 	if err != nil {
 		logrus.Errorf("new scanner failed. error: %s", err)
 		return
+	}
+
+	m.pos = &ast.TokenPos{
+		FilePos: m.file.Pos,
 	}
 
 	m.next()
@@ -220,21 +232,29 @@ func (m *Parser) consumeCommentGroup(n int) (comments *ast.CommentGroup, endline
 	return
 }
 
+func (m *Parser) printToken0() {
+	for m.tok != ast.EOF {
+		// debug
+		fmt.Println(m.pos, m.tok, m.lit)
+		m.next0()
+	}
+}
+
 func (m *Parser) parseFile() (idlFile *ast.IdlFile) {
 	var declHandlers = map[ast.Token]declHandlerFunc{
 		ast.IMPORT:    m.parseImport,
 		ast.SYNTAX:    m.parseAssignment,
-		ast.SERVICE:   m.parseService,
 		ast.MODEL:     m.parseModel,
+		ast.SERVICE:   m.parseService,
 		ast.REST:      m.parseRest,
 		ast.GRPC:      m.parseGrpc,
 		ast.WS:        m.parseWs,
 		ast.RAW:       m.parseRaw,
 		ast.DECORATOR: m.parseDecorator,
 	}
+	_ = declHandlers
 
 	for m.tok != ast.EOF {
-		//fmt.Println(m.pos, m.tok, m.lit)
 		declHandler, ok := declHandlers[m.tok]
 		if !ok {
 			m.next()
@@ -268,8 +288,8 @@ func (m *Parser) parseImport() (decl ast.IDecl) {
 			specs = append(specs, spec)
 		}
 		rparen = m.expect(ast.RPAREN)
+		m.expectSemi()
 		exprEnd = rparen.Offset
-
 	} else {
 		// one spec
 		spec := m.parseImportSpec()
@@ -322,6 +342,8 @@ func (m *Parser) parseImportSpec() (spec *ast.ImportSpec) {
 	} else {
 		m.expect(ast.STRING)
 	}
+
+	m.expectSemi()
 
 	spec = &ast.ImportSpec{
 		Doc:     m.lastLeadComment,
@@ -379,6 +401,10 @@ func (m *Parser) parseAssignment() (decl ast.IDecl) {
 	valueTok := m.tok
 	valueLit := m.lit
 	exprEnd := valuePos.Offset + len(valueLit)
+
+	m.next()
+	m.expectSemi() // call before accessing m.lastLineComment
+
 	if m.lastLineComment != nil {
 		exprEnd = m.lastLineComment.End().Offset
 	}
@@ -407,13 +433,232 @@ func (m *Parser) parseAssignment() (decl ast.IDecl) {
 	return assignDecl
 }
 
-func (m *Parser) parseService() (decl ast.IDecl) {
-	// TODO temp
+func (m *Parser) parseModel() (decl ast.IDecl) {
+	pos := m.pos
+	//lit := m.lit
+	tok := m.tok
+
+	exprStart := pos.Offset
+	doc := m.lastLeadComment
+	comment := m.lastLineComment
+	if doc != nil {
+		exprStart = doc.Pos().Offset
+	}
+
 	m.next()
+	// parse type
+	spec := m.parseModelSpec()
+	exprEnd := spec.Closing.Offset
+
+	spec.Doc = doc
+	comment = spec.Comment
+	modelDecl := &ast.ModelDecl{
+		Decl: ast.Decl{
+			Expr: m.src[exprStart : exprEnd+1],
+			Pos:  pos,
+		},
+		Doc:     doc,
+		Comment: comment,
+		Tok:     tok,
+		Spec:    spec,
+	}
+	m.idlFile.AddModels(modelDecl)
+	return modelDecl
+}
+
+func (m *Parser) parseModelSpec() (spec *ast.ModelType) {
+	name := m.parseIdent()
+	doc := m.lastLeadComment
+	lbrace := m.expect(ast.LBRACE)
+	comment := m.lastLineComment
+	fields := make([]*ast.ModelField, 0)
+
+	// TypeName
+	// *TypeName
+	// Field TypeName
+	// Field *TypeName
+	for m.tok == ast.IDENT || m.tok == ast.Star {
+		fields = append(fields, m.parseField())
+	}
+
+	rbrace := m.expect(ast.RBRACE)
+	m.expectSemi()
+
+	spec = &ast.ModelType{
+		TypePos: name.Pos,
+		Doc:     doc,
+		Comment: comment,
+		Name:    name,
+		Opening: lbrace,
+		Fields:  fields,
+		Closing: rbrace,
+	}
+
 	return
 }
 
-func (m *Parser) parseModel() (decl ast.IDecl) {
+func (m *Parser) parseField() (field *ast.ModelField) {
+	doc := m.lastLeadComment
+	pos := m.pos
+	field = &ast.ModelField{}
+	if m.tok != ast.IDENT {
+		m.errorf(m.pos, "illegal model field. token: %+v", m.tok)
+		return
+	}
+
+	name := m.parseIdent()
+	var typ ast.IType
+	embedded := false
+	// embedded type
+	if m.tok == ast.PERIOD || // package module
+		m.tok == ast.STRING || // field tag
+		m.tok == ast.SEMICOLON || // end declare
+		m.tok == ast.RBRACE { // end type
+		typ = m.parseTypeName(name)
+		embedded = true
+	} else {
+		typ = m.parseType()
+	}
+
+	var tag *ast.FieldTag
+	if m.tok == ast.STRING {
+		tag = &ast.FieldTag{
+			BasicLit: &ast.BasicLit{
+				Pos:   m.pos,
+				Kind:  m.tok,
+				Value: m.lit,
+			},
+		}
+		m.next()
+	}
+
+	m.expectSemi() // end expression, call before accessing p.linecomment
+
+	field = &ast.ModelField{
+		Pos:      pos,
+		Doc:      doc,
+		Comment:  m.lastLineComment,
+		Name:     name,
+		Type:     typ,
+		Tag:      tag,
+		Exported: IsExported(name.Name),
+		Embedded: embedded,
+	}
+	return
+}
+
+func (m *Parser) expectSemi() {
+	// semicolon is optional before a closing ')' or '}'
+	if m.tok != ast.RPAREN && m.tok != ast.RBRACE {
+		switch m.tok {
+		case ast.COMMA:
+			// permit a ',' instead of a ';' but complain
+			m.errorExpected(m.pos, "';'")
+			fallthrough
+		case ast.SEMICOLON:
+			m.next()
+		default:
+			m.errorExpected(m.pos, "';'")
+			//m.advance(stmtStart)
+		}
+	}
+}
+
+//// advance consumes tokens until the current token p.tok
+//// is in the 'to' set, or token.EOF. For error recovery.
+//func (m *Parser) advance(to map[ast.Token]bool) {
+//	for ; m.tok != ast.EOF; m.next() {
+//		if to[m.tok] {
+//			// Return only if parser made some progress since last
+//			// sync or if it has not reached 10 advance calls without
+//			// progress. Otherwise consume at least one token to
+//			// avoid an endless parser loop (it is possible that
+//			// both parseOperand and parseStmt call advance and
+//			// correctly do not advance, thus the need for the
+//			// invocation limit p.syncCnt).
+//			if m.pos == m.syncPos && m.syncCnt < 10 {
+//				m.syncCnt++
+//				return
+//			}
+//			if m.pos > m.syncPos {
+//				m.syncPos = m.pos
+//				m.syncCnt = 0
+//				return
+//			}
+//			// Reaching here indicates a parser bug, likely an
+//			// incorrect token list in this function, but it only
+//			// leads to skipping of possibly correct code if a
+//			// previous error is present, and thus is preferred
+//			// over a non-terminating parse.
+//		}
+//	}
+//}
+
+// IsExported reports whether name starts with an upper-case letter.
+//
+func IsExported(name string) bool {
+	ch, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(ch)
+}
+
+func (m *Parser) parseType() (iType ast.IType) {
+	switch m.tok {
+	case ast.IDENT:
+		iType = m.parseTypeName(nil)
+		return
+
+	case ast.LBRACE: // { not named struct
+
+	case ast.LBRACK: // array
+
+	case ast.MAP: // map
+
+	case ast.INTERFACE: // interface
+
+	default:
+		iType = ast.UnknownType
+	}
+	return
+}
+
+func (m *Parser) parseTypeName(
+	ident *ast.Ident,
+) (
+	iType ast.IType,
+) {
+	var pos *ast.TokenPos
+	if ident == nil {
+		pos = m.pos
+		ident = m.parseIdent()
+	} else {
+		pos = ident.Pos
+	}
+
+	if m.tok == ast.PERIOD {
+		// ident is a package name
+		m.next()
+		sel := m.parseIdent()
+		typeRef := &ast.TypeRef{
+			TypePos: pos,
+			Name:    sel,
+			Package: ident,
+			Type:    nil,
+		}
+		iType = typeRef
+		return
+	}
+
+	typeRef := &ast.TypeRef{
+		TypePos: pos,
+		Name:    ident,
+		Package: nil,
+		Type:    nil,
+	}
+	iType = typeRef
+	return
+}
+
+func (m *Parser) parseService() (decl ast.IDecl) {
 	// TODO temp
 	m.next()
 	return

@@ -38,7 +38,7 @@ type FilePos struct {
 // Decl definition declare
 type Decl struct {
 	Expr []byte    // expr string
-	Pos  *TokenPos // declare pos
+	Pos  *TokenPos // declare TypePos
 }
 
 type IDecl interface {
@@ -134,6 +134,18 @@ type ImportSpec struct {
 	Path    *BasicLit     // line comments; or nil
 }
 
+type ModelDecl struct {
+	Decl
+	Doc     *CommentGroup
+	Comment *CommentGroup
+	Tok     Token
+	Spec    *ModelType
+}
+
+func (m *ModelDecl) Help() string {
+	return `TODO` // TODO
+}
+
 type DecoratorDecl struct {
 	Decl
 }
@@ -147,14 +159,6 @@ type ServiceDecl struct {
 }
 
 func (m *ServiceDecl) Help() string {
-	return `TODO` // TODO
-}
-
-type ModelDecl struct {
-	Decl
-}
-
-func (m *ModelDecl) Help() string {
 	return `TODO` // TODO
 }
 

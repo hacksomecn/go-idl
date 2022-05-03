@@ -63,3 +63,8 @@ func (m *IdlFile) AddImport(imp *ImportDecl) {
 	m.Imports = append(m.Imports, imp)
 	m.Decls = append(m.Decls, imp)
 }
+
+func (m *IdlFile) AddModels(model *ModelDecl) {
+	m.Models = append(m.Models, model)
+	m.Decls = append(m.Decls, model)
+}

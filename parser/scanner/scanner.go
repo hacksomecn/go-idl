@@ -113,10 +113,9 @@ type Scanner struct {
 	ch         rune // current character
 	offset     int  // current character offset
 	lineOffset int  // current line offset
-
-	lineNo int // current line number
-
-	rdOffset int // reading offset (position after current character)
+	lineNo     int  // current line number
+	rdOffset   int  // reading offset (position after current character)
+	insertSemi bool // insert a semicolon before next newline
 
 	ErrorList ErrorList
 }
@@ -265,38 +264,112 @@ func (m *Scanner) Scan() (pos *ast.TokenPos, tok ast.Token, lit string) {
 	pos = m.pos(m.offset, m.lineNo, m.lineOffset)
 
 	// determine token value
+	insertSemi := false
 	switch ch := m.ch; {
-	case isLetter(ch) || ch == '@': // word or decorator
+	case isLetter(ch): // word or decorator
 		lit = m.scanIdentifier()
-		tok = ast.LookupKeywordIdent(lit)
+		if len(lit) > 1 {
+			// keywords are longer than one letter - avoid lookup otherwise
+			tok = ast.LookupKeywordIdent(lit)
+			switch tok {
+			case ast.IDENT:
+				insertSemi = true
+			}
+
+		} else {
+			insertSemi = true
+			tok = ast.IDENT
+		}
 
 	case isDecimal(ch) || ch == '.' && isDecimal(rune(m.peek())): // number
+		insertSemi = true
 		tok, lit = m.scanNumber()
 
 	default:
 		m.next() // always make progress
 		switch ch {
 		case eof:
+			if m.insertSemi {
+				m.insertSemi = false // EOF consumed
+				tok = ast.SEMICOLON
+				lit = "n"
+				return
+			}
+
 			tok = ast.EOF
 
 		case '\n':
-			tok = ast.NEWLINE
+			// we only reach here if s.insertSemi was
+			// set in the first place and exited early
+			// from s.skipWhitespace()
+			m.insertSemi = false // newline consumed
+			tok = ast.SEMICOLON
+			lit = "\n"
+			return
 
 		case '"':
+			insertSemi = true
 			tok = ast.STRING
 			lit = m.scanString()
 
 		case '\'':
+			insertSemi = true
 			tok = ast.CHAR
 			lit = m.scanRune()
-
 		case '`':
+			insertSemi = true
 			tok = ast.STRING
 			lit = m.scanRawString()
+
+		case '.':
+			// fractions starting with a '.' are handled by outer switch
+			tok = ast.PERIOD
+
+		case ',':
+			tok = ast.COMMA
+
+		case ';':
+			tok = ast.SEMICOLON
+			lit = ";"
+
+		case '(':
+			tok = ast.LPAREN
+
+		case ')':
+			insertSemi = true
+			tok = ast.RPAREN
+
+		case '[':
+			tok = ast.LBRACK
+
+		case ']':
+			insertSemi = true
+			tok = ast.RBRACK
+
+		case '{':
+			tok = ast.LBRACE
+
+		case '}':
+			insertSemi = true
+			tok = ast.RBRACE
+
+		case '*':
+			tok = ast.Star
 
 		case '/':
 			if m.ch == '/' || m.ch == '*' {
 				// comment
+				if m.insertSemi && m.findLineEnd() {
+					// reset position to the beginning of the comment
+					m.ch = '/'
+					m.offset = pos.Offset
+					m.rdOffset = m.offset + 1
+					m.insertSemi = false // newline consumed
+					tok = ast.SEMICOLON
+					lit = "\n"
+					return
+				}
+
 				tok = ast.COMMENT
 				lit = m.scanComment()
 			} else {
@@ -307,14 +380,16 @@ func (m *Scanner) Scan() (pos *ast.TokenPos, tok ast.Token, lit string) {
 			tok = ast.ASSIGN
 
 		default:
-			var isOperator bool
-			tok, isOperator = ast.LookupOperatorToken(ch)
-			if !isOperator {
-				tok = ast.IDENT
+			// next reports unexpected BOMs - don't repeat
+			if ch != bom {
+				m.errorf(pos.Offset, "illegal character %#U", ch)
 			}
+			insertSemi = m.insertSemi
+			tok = ast.ILLEGAL
+			lit = string(ch)
 		}
-
 	}
+	m.insertSemi = insertSemi
 	return
 }
 
@@ -843,7 +918,7 @@ func stripCR(b []byte, comment bool) []byte {
 }
 
 func (m *Scanner) skipWhitespace() {
-	for m.ch == ' ' || m.ch == '\t' || m.ch == '\n' || m.ch == '\r' {
+	for m.ch == ' ' || m.ch == '\t' || m.ch == '\n' && !m.insertSemi || m.ch == '\r' {
 		m.next()
 	}
 }

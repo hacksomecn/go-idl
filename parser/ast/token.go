@@ -41,7 +41,6 @@ const (
 	ILLEGAL Token = "ILLEGAL"
 	EOF           = "EOF"
 	COMMENT       = "COMMENT"
-	NEWLINE       = "NEWLINE"
 
 	//literalBeg
 	// Identifiers and basic type literals
@@ -58,6 +57,7 @@ const (
 	//operatorBeg
 	// Operators and delimiters
 
+	Star   = "*" // * pointer
 	ASSIGN = "=" // =
 
 	LPAREN = "(" // (
@@ -66,10 +66,10 @@ const (
 	COMMA  = "," // ,
 	PERIOD = "." // .
 
-	RPAREN = ")" // )
-	RBRACK = "]" // ]
-	RBRACE = "}" // }
-	//SEMICOLON // ;
+	RPAREN    = ")" // )
+	RBRACK    = "]" // ]
+	RBRACE    = "}" // }
+	SEMICOLON = ";" // ;
 	//COLON // :
 	//operatorEnd
 
@@ -85,6 +85,10 @@ const (
 	IMPORT    = "IMPORT"  // import
 	RAW       = "RAW"     // raw
 	DECORATOR = "@"       // @
+
+	INTERFACE = "interface"
+	MAP       = "map"
+
 	//keywordEnd
 )
 
@@ -117,7 +121,7 @@ var operators = map[rune]Token{
 	')': RPAREN,
 	']': RBRACK,
 	'}': RBRACE,
-	//';': SEMICOLON,
+	';': SEMICOLON,
 	//':': COLON,
 }
 
@@ -164,7 +168,7 @@ func IsBlockEndToken(token Token) (yes bool, startToken Token) {
 }
 
 type TokenPos struct {
-	FilePos *FilePos `json:"file_pos"` // file pos
+	FilePos *FilePos `json:"file_pos"` // file TypePos
 
 	LineNo     int // line no
 	LineOffset int // line offset
@@ -188,7 +192,7 @@ func (m *TokenPos) IsValid() bool {
 }
 
 type TokenFile struct {
-	Pos         *FilePos `json:"pos"`
+	Pos         *FilePos `json:"TypePos"`
 	LineOffsets []int    `json:"line_offsets"` // line offsets
 }
 
