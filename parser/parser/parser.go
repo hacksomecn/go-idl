@@ -493,8 +493,10 @@ func (m *Parser) parseType() (iType ast.IType) {
 		return
 
 	case ast.MAP: // map
+		return m.parseMapType()
 
 	case ast.INTERFACE: // interface
+		return m.parseInterfaceType()
 
 	default:
 		iType = ast.UnknownType
@@ -705,6 +707,50 @@ func (m *Parser) parseArrayType() (arrayType *ast.ArrayType) {
 			TypeEnd: ast.NewTokenPos(pos.FilePos, lbrack.Offset+elt.End().Offset),
 		},
 		ElemType: elt,
+	}
+	return
+}
+
+func (m *Parser) parseMapType() (mapType *ast.MapType) {
+	pos := m.expect(ast.MAP)
+	m.expect(ast.LBRACK)
+	key := m.parseType()
+	m.expect(ast.RBRACK)
+	elt := m.parseType()
+
+	mapType = &ast.MapType{
+		Type: ast.Type{
+			Name: &ast.Ident{
+				Pos:  pos,
+				Name: fmt.Sprintf("map[%s]%s", key.TypeName(), elt.TypeName()),
+			},
+			TypePos: pos,
+			TypeEnd: elt.End(),
+		},
+		KeyType:  key,
+		ElemType: elt,
+	}
+	return
+}
+
+// interface or interface{}
+func (m *Parser) parseInterfaceType() (interfaceType *ast.InterfaceType) {
+	pos := m.expect(ast.INTERFACE)
+	end := ast.NewTokenPos(pos.FilePos, pos.Offset+len(m.lit))
+	if m.tok == ast.LBRACE { // interface{}
+		m.next()
+		end = m.expect(ast.RBRACE)
+	}
+
+	interfaceType = &ast.InterfaceType{
+		Type: ast.Type{
+			Name: &ast.Ident{
+				Pos:  pos,
+				Name: "interface",
+			},
+			TypePos: pos,
+			TypeEnd: end,
+		},
 	}
 	return
 }

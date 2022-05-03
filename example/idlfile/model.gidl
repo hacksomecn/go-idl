@@ -45,4 +45,13 @@ model UserInfo { // container user contact address
     Hobis []{
         Name string `json:"name"`
     } `json:"hobis"`
+
+    Language map[string]string `json:"language"`
+    Language2 map[int64]Base `json:"language2"`
+    Language3 map[int64]{
+        Translate string `json:"translate"`
+    } `json:"language3"`
+
+    Plan1 interface `json:"plan1"`
+    Plan2 interface{} `json:"plan2"`
 }

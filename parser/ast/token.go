@@ -93,15 +93,17 @@ const (
 )
 
 var keywords = map[string]Token{
-	"syntax":  SYNTAX,
-	"service": SERVICE,
-	"model":   MODEL,
-	"rest":    REST,
-	"grpc":    GRPC,
-	"ws":      WS,
-	"import":  IMPORT,
-	"raw":     RAW,
-	"@":       DECORATOR,
+	"syntax":    SYNTAX,
+	"service":   SERVICE,
+	"model":     MODEL,
+	"rest":      REST,
+	"grpc":      GRPC,
+	"ws":        WS,
+	"import":    IMPORT,
+	"raw":       RAW,
+	"@":         DECORATOR,
+	"interface": INTERFACE,
+	"map":       MAP,
 }
 
 // system variable
@@ -142,28 +144,6 @@ func LookupSysVarIdent(ident string) Token {
 
 func LookupOperatorToken(ch rune) (token Token, exists bool) {
 	token, exists = operators[ch]
-	return
-}
-
-// BlockTokenPair block pair token
-var BlockTokenPair = map[Token]Token{ // start_token -> close_token
-	LPAREN: RPAREN, // (...)
-	LBRACE: RBRACE, // {...}
-}
-
-// BlockTokenReversePair reverse block pair token
-var BlockTokenReversePair = map[Token]Token{
-	RPAREN: LPAREN, // ) -> (
-	RBRACE: LBRACE, // } -> {
-}
-
-func IsBlockStartToken(token Token) (yes bool, endToken Token) {
-	endToken, yes = BlockTokenPair[token]
-	return
-}
-
-func IsBlockEndToken(token Token) (yes bool, startToken Token) {
-	startToken, yes = BlockTokenReversePair[token]
 	return
 }
 

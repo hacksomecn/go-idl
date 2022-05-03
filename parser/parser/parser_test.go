@@ -140,7 +140,7 @@ func TestParseFileModel(t *testing.T) {
 			}
 			fmt.Println("\t\texported:", field.Exported)
 			fmt.Println("\t\tembedded:", field.Embedded)
-			fmt.Println("\t\ttype:", field.Type)
+			fmt.Println("\t\ttype:", field.Type.TypeName().Name, field.Type)
 			switch subType := field.Type.(type) {
 			case *ast.ModelType:
 				for _, ff := range subType.Fields {
@@ -174,6 +174,9 @@ func TestParseFileModel(t *testing.T) {
 				}
 			case *ast.ArrayType:
 				fmt.Println("\t\t\telem:", reflect.TypeOf(subType.ElemType), subType.ElemType.TypeName())
+			case *ast.MapType:
+				fmt.Println("\t\t\tkey:", reflect.TypeOf(subType.KeyType), subType.KeyType.TypeName())
+				fmt.Println("\t\t\telement:", reflect.TypeOf(subType.ElemType), subType.ElemType.TypeName())
 			}
 			fmt.Println()
 		}
