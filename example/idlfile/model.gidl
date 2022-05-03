@@ -16,7 +16,7 @@ model Base { // contain create time and update time
 
 // user info model
 model UserInfo { // container user contact address
-    Base
+    Base `doc:",skip"`
 
     // user id
     Id int64 `json:"id"`  // int64
@@ -26,4 +26,15 @@ model UserInfo { // container user contact address
 
     // user address
     Address string `json:"address"` // string
+
+    Dress {
+        Shirt string `json:"shirt"` // shirt
+        Pants string `json:"pants"` // pants
+        Shoes string `json:"shoes"` // shoes
+        Style {
+            Men string `json:"men"` // men
+            Women string `json:"women"` // women
+        } `json:"style"`
+
+    } `json:"dress"`
 }

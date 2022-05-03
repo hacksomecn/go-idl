@@ -26,6 +26,7 @@ package parser
 
 import (
 	"fmt"
+	"github.com/hacksomecn/go-idl/parser/ast"
 	"github.com/hacksomecn/go-idl/parser/scanner"
 	"testing"
 )
@@ -133,10 +134,44 @@ func TestParseFileModel(t *testing.T) {
 			fmt.Println("\t\tdoc:", field.Doc)
 			fmt.Println("\t\tcomment: ", field.Comment)
 			fmt.Println("\t\tname: ", field.Name)
-			fmt.Println("\t\ttype:", field.Type)
-			fmt.Printf("\t\ttag: %+v\n", field.Tag)
+			if field.Tag != nil {
+				fmt.Printf("\t\ttag: %+v\n", field.Tag.Value)
+			}
 			fmt.Println("\t\texported", field.Exported)
 			fmt.Println("\t\tembedded", field.Embedded)
+			fmt.Println("\t\ttype:", field.Type)
+			switch subType := field.Type.(type) {
+			case *ast.ModelType:
+				for _, ff := range subType.Fields {
+					fmt.Println("\t\t\tpos:", ff.Pos)
+					fmt.Println("\t\t\tdoc:", ff.Doc)
+					fmt.Println("\t\t\tcomment:", ff.Comment)
+					fmt.Println("\t\t\tname:", ff.Name)
+					if ff.Tag != nil {
+						fmt.Printf("\t\t\ttag: %+v\n", ff.Tag.Value)
+					}
+					fmt.Println("\t\t\texported", ff.Exported)
+					fmt.Println("\t\t\tembedded", ff.Embedded)
+					fmt.Println("\t\t\ttype:", ff.Type)
+					switch ttt := ff.Type.(type) {
+					case *ast.ModelType:
+						for _, fff := range ttt.Fields {
+							fmt.Println("\t\t\t\tpos:", fff.Pos)
+							fmt.Println("\t\t\t\tdoc:", fff.Doc)
+							fmt.Println("\t\t\t\tcomment:", fff.Comment)
+							fmt.Println("\t\t\t\tname:", fff.Name)
+							if fff.Tag != nil {
+								fmt.Printf("\t\t\t\ttag: %+v\n", fff.Tag.Value)
+							}
+							fmt.Println("\t\t\t\texported", fff.Exported)
+							fmt.Println("\t\t\t\tembedded", fff.Embedded)
+							fmt.Println("\t\t\t\ttype:", fff.Type)
+							fmt.Println()
+						}
+					}
+					fmt.Println()
+				}
+			}
 			fmt.Println()
 		}
 	}

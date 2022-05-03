@@ -53,6 +53,8 @@ type ModelType struct {
 	Opening *TokenPos
 	Fields  []*ModelField
 	Closing *TokenPos
+
+	Anonymous bool // no name
 }
 
 func (m *ModelType) Pos() *TokenPos {

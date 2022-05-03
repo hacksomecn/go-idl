@@ -447,7 +447,7 @@ func (m *Parser) parseModel() (decl ast.IDecl) {
 
 	m.next()
 	// parse type
-	spec := m.parseModelSpec()
+	spec := m.parseNamedModelSpec()
 	exprEnd := spec.Closing.Offset
 
 	spec.Doc = doc
@@ -466,8 +466,17 @@ func (m *Parser) parseModel() (decl ast.IDecl) {
 	return modelDecl
 }
 
-func (m *Parser) parseModelSpec() (spec *ast.ModelType) {
+func (m *Parser) parseNamedModelSpec() (spec *ast.ModelType) {
+	pos := m.pos
 	name := m.parseIdent()
+	spec = m.parseModelSpec()
+	spec.Name = name
+	spec.TypePos = pos
+	m.expectSemi() // independent model finish with };
+	return
+}
+
+func (m *Parser) parseModelSpec() (spec *ast.ModelType) {
 	doc := m.lastLeadComment
 	lbrace := m.expect(ast.LBRACE)
 	comment := m.lastLineComment
@@ -482,13 +491,11 @@ func (m *Parser) parseModelSpec() (spec *ast.ModelType) {
 	}
 
 	rbrace := m.expect(ast.RBRACE)
-	m.expectSemi()
 
 	spec = &ast.ModelType{
-		TypePos: name.Pos,
+		TypePos: lbrace,
 		Doc:     doc,
 		Comment: comment,
-		Name:    name,
 		Opening: lbrace,
 		Fields:  fields,
 		Closing: rbrace,
@@ -607,7 +614,11 @@ func (m *Parser) parseType() (iType ast.IType) {
 		iType = m.parseTypeName(nil)
 		return
 
-	case ast.LBRACE: // { not named struct
+	case ast.LBRACE: // { anonymous struct
+		modelSpec := m.parseModelSpec()
+		modelSpec.Anonymous = true
+		iType = modelSpec
+		return
 
 	case ast.LBRACK: // array
 
