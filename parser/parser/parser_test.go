@@ -182,3 +182,29 @@ func TestParseFileModel(t *testing.T) {
 		}
 	}
 }
+
+func TestParseService(t *testing.T) {
+	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/service.gidl", "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	file := files[0]
+	parser, err := NewParser(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	idlFile := parser.parseFile()
+	err = parser.errors.Err()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, service := range idlFile.Services {
+		fmt.Println(string(service.Expr))
+		fmt.Println(service.Name.Name)
+	}
+}

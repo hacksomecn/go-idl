@@ -39,6 +39,7 @@ type FilePos struct {
 type Decl struct {
 	Expr []byte    // expr string
 	Pos  *TokenPos // declare TypePos
+	End  *TokenPos // decl end
 }
 
 type IDecl interface {
@@ -139,6 +140,7 @@ type ModelDecl struct {
 	Doc     *CommentGroup
 	Comment *CommentGroup
 	Tok     Token
+	Name    *Ident
 	Spec    *ModelType
 }
 
@@ -146,16 +148,12 @@ func (m *ModelDecl) Help() string {
 	return `TODO` // TODO
 }
 
-type DecoratorDecl struct {
-	Decl
-}
-
-func (m *DecoratorDecl) Help() string {
-	return `format: @<DECORATOR_NAME> decorator content text`
-}
-
 type ServiceDecl struct {
 	Decl
+	Doc     *CommentGroup
+	Comment *CommentGroup
+	Name    *Ident
+	Tok     Token
 }
 
 func (m *ServiceDecl) Help() string {
@@ -196,4 +194,12 @@ raw {
 	.... 
 }
 usage: all text in block will be copy to generated .go file` // TODO
+}
+
+type DecoratorDecl struct {
+	Decl
+}
+
+func (m *DecoratorDecl) Help() string {
+	return `format: @<DECORATOR_NAME> decorator content text`
 }

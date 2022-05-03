@@ -278,7 +278,8 @@ func (m *Parser) parseImport() (decl ast.IDecl) {
 		exprStart = doc.Pos().Offset
 	}
 
-	var exprEnd int
+	var exprEnd int // contain comment
+	var declEnd int
 	if m.tok == ast.LPAREN {
 		lparent = m.pos
 		//read import specs
@@ -290,6 +291,7 @@ func (m *Parser) parseImport() (decl ast.IDecl) {
 		rparen = m.expect(ast.RPAREN)
 		m.expectSemi()
 		exprEnd = rparen.Offset
+		declEnd = rparen.Offset
 	} else {
 		// one spec
 		spec := m.parseImportSpec()
@@ -299,6 +301,7 @@ func (m *Parser) parseImport() (decl ast.IDecl) {
 			exprEnd = m.lastLineComment.End().Offset
 		} else {
 			exprEnd = spec.Path.Pos.Offset + len(spec.Path.Value)
+			declEnd = spec.Path.Pos.Offset + len(spec.Path.Value)
 		}
 	}
 
@@ -306,6 +309,7 @@ func (m *Parser) parseImport() (decl ast.IDecl) {
 		Decl: ast.Decl{
 			Expr: m.src[exprStart : exprEnd+1],
 			Pos:  pos,
+			End:  ast.NewTokenPos(pos.FilePos, declEnd),
 		},
 		Doc:       doc,
 		Tok:       ast.IMPORT,
@@ -413,6 +417,7 @@ func (m *Parser) parseAssignment() (decl ast.IDecl) {
 		Decl: ast.Decl{
 			Expr: m.src[exprStart : exprEnd+1],
 			Pos:  pos,
+			End:  ast.NewTokenPos(pos.FilePos, valuePos.Offset+len(valueLit)),
 		},
 		Doc:     m.lastLeadComment,
 		Comment: m.lastLineComment,
@@ -448,21 +453,27 @@ func (m *Parser) parseModel() (decl ast.IDecl) {
 	m.next()
 	// parse type
 	spec := m.parseNamedModelSpec()
+
 	exprEnd := spec.Closing.Offset
+	comment = m.lastLineComment
+	if comment != nil {
+		exprEnd = comment.End().Offset
+	}
 
 	spec.Doc = doc
-	comment = spec.Comment
 	modelDecl := &ast.ModelDecl{
 		Decl: ast.Decl{
 			Expr: m.src[exprStart : exprEnd+1],
 			Pos:  pos,
+			End:  spec.Closing,
 		},
 		Doc:     doc,
 		Comment: comment,
 		Tok:     tok,
+		Name:    spec.Name,
 		Spec:    spec,
 	}
-	m.idlFile.AddModels(modelDecl)
+	m.idlFile.AddModel(modelDecl)
 	return modelDecl
 }
 
@@ -782,8 +793,41 @@ func (m *Parser) parsePointerType() (pointerType *ast.PointerType) {
 }
 
 func (m *Parser) parseService() (decl ast.IDecl) {
-	// TODO temp
+	doc := m.lastLeadComment
+	pos := m.pos
+	tok := m.tok
 	m.next()
+	name := m.parseIdent()
+
+	m.expect(ast.LBRACE)
+	for m.tok != ast.RBRACE {
+		m.next() // remain
+	}
+
+	rbrace := m.expect(ast.RBRACE)
+	m.expectSemi()
+	comment := m.lastLineComment
+
+	exprStart := pos.Offset
+	exprEnd := rbrace.Offset
+	if doc != nil {
+		exprStart = doc.Pos().Offset
+		exprEnd = comment.End().Offset
+	}
+
+	serviceDecl := &ast.ServiceDecl{
+		Decl: ast.Decl{
+			Expr: m.src[exprStart : exprEnd+1],
+			Pos:  pos,
+			End:  rbrace,
+		},
+		Doc:     doc,
+		Comment: comment,
+		Name:    name,
+		Tok:     tok,
+	}
+	decl = serviceDecl
+	m.idlFile.AddService(serviceDecl)
 	return
 }
 

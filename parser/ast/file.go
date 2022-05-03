@@ -30,6 +30,7 @@ type IdlFile struct {
 	Assigns      []*AssignmentDecl `json:"assigns"` // idl property assignment
 	Imports      []*ImportDecl     `json:"imports"`
 	Models       []*ModelDecl      `json:"models"`
+	Services     []*ServiceDecl    `json:"services"`
 	Rests        []*RestDecl       `json:"rests"`
 	Grpcs        []*GrpcDecl       `json:"grpcs"`
 	Wss          []*WsDecl         `json:"wss"`
@@ -45,6 +46,7 @@ func NewIdlFile(tokenFile *TokenFile) (file *IdlFile) {
 		Assigns:      []*AssignmentDecl{},
 		Imports:      []*ImportDecl{},
 		Models:       []*ModelDecl{},
+		Services:     []*ServiceDecl{},
 		Rests:        []*RestDecl{},
 		Grpcs:        []*GrpcDecl{},
 		Wss:          []*WsDecl{},
@@ -64,7 +66,12 @@ func (m *IdlFile) AddImport(imp *ImportDecl) {
 	m.Decls = append(m.Decls, imp)
 }
 
-func (m *IdlFile) AddModels(model *ModelDecl) {
+func (m *IdlFile) AddModel(model *ModelDecl) {
 	m.Models = append(m.Models, model)
 	m.Decls = append(m.Decls, model)
+}
+
+func (m *IdlFile) AddService(service *ServiceDecl) {
+	m.Services = append(m.Services, service)
+	m.Decls = append(m.Decls, service)
 }
