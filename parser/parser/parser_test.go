@@ -243,3 +243,38 @@ func TestParseRest(t *testing.T) {
 		fmt.Println()
 	}
 }
+
+func TestParseGrpc(t *testing.T) {
+	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/grpc.gidl", "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	file := files[0]
+	parser, err := NewParser(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	idlFile := parser.parseFile()
+	err = parser.errors.Err()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for _, gprc := range idlFile.Grpcs {
+		fmt.Println(string(gprc.Expr))
+		if gprc.Req != nil {
+			fmt.Println("req", gprc.Req.TypeNameIdent().Name)
+		}
+
+		if gprc.Resp != nil {
+			fmt.Println("resp", gprc.Resp.TypeNameIdent().Name)
+		}
+
+		fmt.Println()
+	}
+}

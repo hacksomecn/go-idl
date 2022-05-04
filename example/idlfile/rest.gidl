@@ -10,9 +10,10 @@ rest HelloWorldRest2 POST "/api/hello/world/2" {
 }
 
 rest HelloWorldRes3 POST "/api/hello/world/3" {
-    req Res3Req {
+    req {
         B string `json:"b"`
     }
+
     resp {
     }
 }
@@ -30,4 +31,15 @@ rest HelloWorldRes4 ANY "/api/hello/world/4" {
     resp []{
         A string `json:"a"`
     }
+}
+
+model HelloWorldResReq {
+}
+
+model HelloWorldResResp {
+}
+
+rest HelloWorldRes5 POST "/api/hello/world/5" {
+    req HelloWorldResReq
+    resp HelloWorldResResp
 }

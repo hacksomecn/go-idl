@@ -166,7 +166,7 @@ type RestDecl struct {
 	HttpMethod *Ident
 	StrUri     *BasicLit
 	Uris       []string
-	Req        *RestReq
+	Req        IType
 	Resp       IType
 }
 
@@ -181,10 +181,16 @@ type RestReq struct {
 
 type GrpcDecl struct {
 	Decl
+	Name *Ident
+	Req  IType
+	Resp IType
 }
 
 func (m *GrpcDecl) Help() string {
-	return `TODO` // TODO
+	return `grpc [Handler]{
+	req {}
+	resp {}
+}` // TODO
 }
 
 type WsDecl struct {

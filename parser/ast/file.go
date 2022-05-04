@@ -80,3 +80,8 @@ func (m *IdlFile) AddRest(rest *RestDecl) {
 	m.Rests = append(m.Rests, rest)
 	m.Decls = append(m.Decls, rest)
 }
+
+func (m *IdlFile) AddGrpc(grpc *GrpcDecl) {
+	m.Grpcs = append(m.Grpcs, grpc)
+	m.Decls = append(m.Decls, grpc)
+}

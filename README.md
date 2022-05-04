@@ -28,11 +28,8 @@ multiple line comment
 */
 ```
 
-### service
-```
-service ExampleService {
-}
-```
+### typedef
+TODO
 
 ### model
 ```
@@ -94,11 +91,14 @@ ws <Name> <UP|DOWN> <1234|CodeHeartBeat> {
 }
 ```
 
+### service
+```
+service ExampleService {
+}
+```
+
 ### status codes
 TODO
-
-### embedded model
-TODO 
 
 ### import
 import go package

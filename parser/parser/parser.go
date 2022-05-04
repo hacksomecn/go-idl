@@ -489,22 +489,9 @@ func (m *Parser) parseNamedModelSpec() (spec *ast.ModelType) {
 }
 
 // optional
-func (m *Parser) parseModelSpecWithOptionalName() (spec *ast.ModelType) {
-	var name *ast.Ident
-	var anonymous bool
-	if m.tok == ast.IDENT {
-		name = m.parseIdent()
-	} else if m.tok == ast.LBRACE {
-		anonymous = true
-	} else {
-		m.errorf(m.pos, "illegal model decl start")
-	}
-
+func (m *Parser) parseModelSpecAnonymous() (spec *ast.ModelType) {
 	spec = m.parseModelSpec()
-	spec.Anonymous = anonymous
-	if name != nil {
-		spec.Name = name
-	}
+	spec.Anonymous = true
 	return
 }
 
@@ -515,7 +502,7 @@ func (m *Parser) parseType() (iType ast.IType) {
 		return
 
 	case ast.LBRACE: // { anonymous struct
-		iType = m.parseModelSpecWithOptionalName()
+		iType = m.parseModelSpecAnonymous()
 		return
 
 	case ast.LBRACK: // array
@@ -848,7 +835,7 @@ func (m *Parser) parseRest() (decl ast.IDecl) {
 	m.next()
 	m.expect(ast.LBRACE)
 
-	var req *ast.RestReq
+	var req ast.IType
 	var resp ast.IType
 
 	fieldExists := make(map[string]bool)
@@ -864,12 +851,14 @@ func (m *Parser) parseRest() (decl ast.IDecl) {
 		m.next()
 		switch restFieldName {
 		case "req":
-			reqType := m.parseModelSpecWithOptionalName()
-			req = m.checkRestReq(reqType)
+			req = m.parseType()
+
 		case "resp":
 			resp = m.parseType()
+
 		default:
 			m.errorf(m.pos, "unknown field for rest. name: %s", m.lit)
+
 		}
 
 		m.expectSemi()
@@ -962,8 +951,65 @@ var restReqFields = map[string]bool{
 }
 
 func (m *Parser) parseGrpc() (decl ast.IDecl) {
-	// TODO temp
+	pos := m.pos
+	doc := m.lastLeadComment
 	m.next()
+	name := m.parseIdent()
+	m.expect(ast.LBRACE)
+
+	var req ast.IType
+	var resp ast.IType
+
+	fieldExists := make(map[string]bool)
+	for m.tok == ast.IDENT {
+		fieldName := m.lit
+		if fieldExists[fieldName] {
+			m.errorf(m.pos, "duplicated grpc field. %s", fieldName)
+			continue
+		}
+		fieldExists[fieldName] = true
+
+		m.next()
+		switch fieldName {
+		case "req":
+			req = m.parseType()
+
+		case "resp":
+			resp = m.parseType()
+
+		default:
+			m.errorf(m.pos, "unknown field for grpc. name:%s", m.lit)
+		}
+
+		m.expectSemi()
+	}
+
+	rbrace := m.expect(ast.RBRACE)
+	m.expectSemi()
+	comment := m.lastLineComment
+
+	exprStart := pos.Offset
+	exprEnd := rbrace.Offset
+	if doc != nil {
+		exprStart = doc.Pos().Offset
+	}
+
+	if comment != nil {
+		exprEnd = comment.End().Offset
+	}
+
+	grpcDecl := &ast.GrpcDecl{
+		Decl: ast.Decl{
+			Expr: m.src[exprStart : exprEnd+1],
+			Pos:  pos,
+			End:  rbrace,
+		},
+		Name: name,
+		Req:  req,
+		Resp: resp,
+	}
+	decl = grpcDecl
+	m.idlFile.AddGrpc(grpcDecl)
 	return
 }
 

@@ -1,0 +1,19 @@
+model Base {
+}
+
+grpc HelloHandler1 {
+    req {
+    }
+    resp {
+    }
+}
+
+grpc HelloHandler2 {
+    req Base
+    resp {}
+}
+
+grpc HelloHandler3 {
+    req *Base
+    resp {}
+}
