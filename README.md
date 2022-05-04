@@ -45,34 +45,24 @@ model User {
 
 ### rest
 ```
-rest <UpdateUserInfo> <GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS|TRACE> /app/user/info/update/:user_id, /manage/user/info/update/:user_id {
-    req UserInfoReq {
-        Header {
-            ContentType string `header:"Content-Type"`
-        }
-        
-        Uri {
-            UserId string `uri:"user_id"` 
-        } 
-        
-        Query {
-            Ts int64 `json:"ts"`
-        }
-        
-        Body {
-            Address string `json:"address" form:"address"` 
+rest <UpdateUserInfo> <GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS|TRACE|ANY> "/app/user/info/update/:user_id, /manage/user/info/update/:user_id" {
+    req {
+        [Header|Uri|Query|Body] {
         }
     }
     
     // or
-    req UserInfoReq {
+    req {
        ContentType string `header:"Content-Type"` 
        UserId string `uri:"user_id"`  
        Ts int64 `json:"ts"`
        Address string `json:"address" form:"address"` 
     }
     
-    resp UserInfoResp {
+    // or
+    req UpdateUserInfoReq
+    
+    resp {
         Code int64 `json:"code"` 
         Msg string `json:"msg"`
         Data {
@@ -80,6 +70,9 @@ rest <UpdateUserInfo> <GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS|TRACE> /ap
             UserMap map[int64]User `json:"user_map"`
         } `json:"data"`
     }
+    
+    // or
+    resp UpdateUserInfoResp
 }
 ```
 
@@ -137,9 +130,9 @@ idl system decorator:
 ### raw
 use go to declare raw code/text.
 ```
-raw [name] {
+raw `
     type A = "123"
-};
+`
 ```
 
 ## parser detail

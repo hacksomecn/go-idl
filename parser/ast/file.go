@@ -75,3 +75,8 @@ func (m *IdlFile) AddService(service *ServiceDecl) {
 	m.Services = append(m.Services, service)
 	m.Decls = append(m.Decls, service)
 }
+
+func (m *IdlFile) AddRest(rest *RestDecl) {
+	m.Rests = append(m.Rests, rest)
+	m.Decls = append(m.Decls, rest)
+}

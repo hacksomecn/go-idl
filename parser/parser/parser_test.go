@@ -73,7 +73,7 @@ func TestParseFileAssign(t *testing.T) {
 }
 
 func TestPrintToken0(t *testing.T) {
-	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/model.gidl", "")
+	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/rest.gidl", "")
 	if err != nil {
 		t.Error(err)
 		return
@@ -206,5 +206,40 @@ func TestParseService(t *testing.T) {
 	for _, service := range idlFile.Services {
 		fmt.Println(string(service.Expr))
 		fmt.Println(service.Name.Name)
+	}
+}
+
+func TestParseRest(t *testing.T) {
+	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/rest.gidl", "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	file := files[0]
+	parser, err := NewParser(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	idlFile := parser.parseFile()
+	err = parser.errors.Err()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for _, rest := range idlFile.Rests {
+		fmt.Println(string(rest.Expr))
+		if rest.Req != nil {
+			fmt.Println("req", rest.Req)
+		}
+
+		if rest.Resp != nil {
+			fmt.Println("resp", rest.Resp.TypeNameIdent().Name)
+		}
+
+		fmt.Println()
 	}
 }

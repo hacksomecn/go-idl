@@ -1,0 +1,33 @@
+rest HelloWorldRest1 GET "/api/hello/world/1" {
+}
+
+rest HelloWorldRest2 POST "/api/hello/world/2" {
+    req {
+        A string `json:"a"`
+    }
+    resp {
+    }
+}
+
+rest HelloWorldRes3 POST "/api/hello/world/3" {
+    req Res3Req {
+        B string `json:"b"`
+    }
+    resp {
+    }
+}
+
+model RespItem {}
+
+rest HelloWorldRes4 ANY "/api/hello/world/4" {
+    req {
+        Header {}
+        Body {
+            B string `json:"b"`
+        }
+    }
+//    resp []RespItem
+    resp []{
+        A string `json:"a"`
+    }
+}

@@ -162,10 +162,21 @@ func (m *ServiceDecl) Help() string {
 
 type RestDecl struct {
 	Decl
+	Name       *Ident
+	HttpMethod *Ident
+	StrUri     *BasicLit
+	Uris       []string
+	Req        *RestReq
+	Resp       IType
 }
 
 func (m *RestDecl) Help() string {
 	return `TODO` // TODO
+}
+
+type RestReq struct {
+	*ModelType
+	Merged bool // header、uri、query、body merged as one model
 }
 
 type GrpcDecl struct {

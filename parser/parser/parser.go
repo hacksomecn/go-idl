@@ -174,7 +174,7 @@ func (m *Parser) errorExpected(pos *ast.TokenPos, msg string) {
 func (m *Parser) expect(tok ast.Token) *ast.TokenPos {
 	pos := m.pos
 	if m.tok != tok {
-		m.errorExpected(pos, "'"+tok.String()+"'")
+		m.errorf(pos, "expected %q, but got %q", tok.String(), m.tok.String())
 	}
 	m.next() // make progress
 	return pos
@@ -453,6 +453,7 @@ func (m *Parser) parseModel() (decl ast.IDecl) {
 	m.next()
 	// parse type
 	spec := m.parseNamedModelSpec()
+	m.expectSemi() // independent model finish with };
 
 	exprEnd := spec.Closing.Offset
 	comment = m.lastLineComment
@@ -477,13 +478,33 @@ func (m *Parser) parseModel() (decl ast.IDecl) {
 	return modelDecl
 }
 
+// required name
 func (m *Parser) parseNamedModelSpec() (spec *ast.ModelType) {
 	pos := m.pos
 	name := m.parseIdent()
 	spec = m.parseModelSpec()
 	spec.Name = name
 	spec.TypePos = pos
-	m.expectSemi() // independent model finish with };
+	return
+}
+
+// optional
+func (m *Parser) parseModelSpecWithOptionalName() (spec *ast.ModelType) {
+	var name *ast.Ident
+	var anonymous bool
+	if m.tok == ast.IDENT {
+		name = m.parseIdent()
+	} else if m.tok == ast.LBRACE {
+		anonymous = true
+	} else {
+		m.errorf(m.pos, "illegal model decl start")
+	}
+
+	spec = m.parseModelSpec()
+	spec.Anonymous = anonymous
+	if name != nil {
+		spec.Name = name
+	}
 	return
 }
 
@@ -494,9 +515,7 @@ func (m *Parser) parseType() (iType ast.IType) {
 		return
 
 	case ast.LBRACE: // { anonymous struct
-		modelSpec := m.parseModelSpec()
-		modelSpec.Anonymous = true
-		iType = modelSpec
+		iType = m.parseModelSpecWithOptionalName()
 		return
 
 	case ast.LBRACK: // array
@@ -672,36 +691,6 @@ func (m *Parser) expectSemi() {
 	}
 }
 
-//// advance consumes tokens until the current token p.tok
-//// is in the 'to' set, or token.EOF. For error recovery.
-//func (m *Parser) advance(to map[ast.Token]bool) {
-//	for ; m.tok != ast.EOF; m.next() {
-//		if to[m.tok] {
-//			// Return only if parser made some progress since last
-//			// sync or if it has not reached 10 advance calls without
-//			// progress. Otherwise consume at least one token to
-//			// avoid an endless parser loop (it is possible that
-//			// both parseOperand and parseStmt call advance and
-//			// correctly do not advance, thus the need for the
-//			// invocation limit p.syncCnt).
-//			if m.pos == m.syncPos && m.syncCnt < 10 {
-//				m.syncCnt++
-//				return
-//			}
-//			if m.pos > m.syncPos {
-//				m.syncPos = m.pos
-//				m.syncCnt = 0
-//				return
-//			}
-//			// Reaching here indicates a parser bug, likely an
-//			// incorrect token list in this function, but it only
-//			// leads to skipping of possibly correct code if a
-//			// previous error is present, and thus is preferred
-//			// over a non-terminating parse.
-//		}
-//	}
-//}
-
 // IsExported reports whether name starts with an upper-case letter.
 //
 func IsExported(name string) bool {
@@ -832,9 +821,144 @@ func (m *Parser) parseService() (decl ast.IDecl) {
 }
 
 func (m *Parser) parseRest() (decl ast.IDecl) {
-	// TODO temp
+	pos := m.pos
+	doc := m.lastLeadComment
 	m.next()
+	name := m.parseIdent()
+	httpMethod := m.parseIdent()
+
+	if !HttpMethodMap[httpMethod.Name] {
+		m.errorf(httpMethod.Pos, "unknown http method %s. available: %s", httpMethod.Name, HttpMethods)
+	}
+
+	if m.tok != ast.STRING {
+		m.errorf(m.pos, "require uri string")
+	}
+
+	strUri := &ast.BasicLit{
+		Pos:   m.pos,
+		Kind:  ast.STRING,
+		Value: m.lit,
+	}
+	strUris := strings.Split(m.lit, ",")
+	for idx, strUri := range strUris {
+		strUris[idx] = strings.TrimSpace(strUri)
+	}
+
+	m.next()
+	m.expect(ast.LBRACE)
+
+	var req *ast.RestReq
+	var resp ast.IType
+
+	fieldExists := make(map[string]bool)
+	for m.tok == ast.IDENT {
+		restFieldName := m.lit
+		if fieldExists[restFieldName] {
+			m.errorf(m.pos, "duplicated rest field. %s", restFieldName)
+			continue
+		}
+
+		fieldExists[restFieldName] = true
+
+		m.next()
+		switch restFieldName {
+		case "req":
+			reqType := m.parseModelSpecWithOptionalName()
+			req = m.checkRestReq(reqType)
+		case "resp":
+			resp = m.parseType()
+		default:
+			m.errorf(m.pos, "unknown field for rest. name: %s", m.lit)
+		}
+
+		m.expectSemi()
+	}
+
+	rbrace := m.expect(ast.RBRACE)
+	m.expectSemi()
+	comment := m.lastLineComment
+
+	exprStart := pos.Offset
+	exprEnd := rbrace.Offset
+	if doc != nil {
+		exprStart = doc.Pos().Offset
+	}
+
+	if comment != nil {
+		exprEnd = comment.End().Offset
+	}
+
+	restDecl := &ast.RestDecl{
+		Decl: ast.Decl{
+			Expr: m.src[exprStart : exprEnd+1],
+			Pos:  pos,
+			End:  rbrace,
+		},
+		Name:       name,
+		HttpMethod: httpMethod,
+		StrUri:     strUri,
+		Uris:       strUris,
+		Req:        req,
+		Resp:       resp,
+	}
+	decl = restDecl
+	m.idlFile.AddRest(restDecl)
 	return
+}
+
+var HttpMethods = []string{
+	"GET",
+	"HEAD",
+	"POST",
+	"PUT",
+	"PATCH",
+	"DELETE",
+	"CONNECT",
+	"OPTIONS",
+	"TRACE",
+	"ANY",
+}
+
+var HttpMethodMap = map[string]bool{}
+
+func init() {
+	for _, method := range HttpMethods {
+		HttpMethodMap[method] = true
+	}
+}
+
+func (m *Parser) checkRestReq(reqType *ast.ModelType) (req *ast.RestReq) {
+	req = &ast.RestReq{
+		ModelType: reqType,
+		Merged:    false,
+	}
+
+	hasMerged := false
+	hasSeperated := false // seperated
+	for _, field := range reqType.Fields {
+		if !restReqFields[field.Name.Name] {
+			hasMerged = true
+		} else {
+			hasSeperated = true
+		}
+	}
+
+	if hasMerged && hasSeperated {
+		m.errorf(reqType.Pos(), "rest req can not has merged fields while has [Header|Uri|Query|Body] fields")
+		return
+	}
+
+	req.Merged = hasMerged
+
+	return
+}
+
+var restReqFields = map[string]bool{
+	"Header": true,
+	"Uri":    true,
+	"Query":  true,
+	"Body":   true,
 }
 
 func (m *Parser) parseGrpc() (decl ast.IDecl) {

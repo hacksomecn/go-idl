@@ -80,9 +80,9 @@ type ModelField struct {
 	Pos     *TokenPos
 	Doc     *CommentGroup
 	Comment *CommentGroup
-	Name    *Ident
-	Type    IType
-	Tag     *FieldTag
+	Name    *Ident    // field name
+	Type    IType     // field type
+	Tag     *FieldTag // field tag
 
 	// Exported reports whether the object is exported (starts with a capital letter).
 	// It doesn't take into account whether the object is in a local (function) scope
