@@ -278,3 +278,34 @@ func TestParseGrpc(t *testing.T) {
 		fmt.Println()
 	}
 }
+
+func TestParseWs(t *testing.T) {
+	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/ws.gidl", "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	file := files[0]
+	parser, err := NewParser(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	idlFile := parser.parseFile()
+	err = parser.errors.Err()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for _, ws := range idlFile.Wss {
+		fmt.Println(string(ws.Expr))
+		fmt.Println(ws.Name.Name)
+		fmt.Println(ws.Direction.Name)
+		fmt.Println(ws.MsgKind.Value)
+		fmt.Println(ws.Msg.TypeNameIdent().Name)
+		fmt.Println()
+	}
+}

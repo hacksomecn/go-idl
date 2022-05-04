@@ -149,3 +149,9 @@ type PointerType struct {
 	Type
 	BaseType IType
 }
+
+type ValueLit struct {
+	Pos   *TokenPos
+	Tok   Token
+	Value string
+}

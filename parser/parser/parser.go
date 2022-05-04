@@ -392,32 +392,43 @@ func (m *Parser) parseAssignment() (decl ast.IDecl) {
 	pos := m.pos
 	lit := m.lit
 	tok := m.tok
-
-	exprStart := pos.Offset
-	if m.lastLeadComment != nil {
-		exprStart = m.lastLeadComment.Pos().Offset
-	}
+	doc := m.lastLeadComment
 
 	m.next()
 	m.expect(ast.ASSIGN)
 
-	valuePos := m.pos
-	valueTok := m.tok
-	valueLit := m.lit
-	exprEnd := valuePos.Offset + len(valueLit)
+	var value *ast.BasicLit
+	if IsBasicLitKind(m.tok) {
+		value = &ast.BasicLit{
+			Pos:   m.pos,
+			Kind:  m.tok,
+			Value: m.lit,
+		}
+	} else {
+		value = &ast.BasicLit{}
+		m.errorf(m.pos, "illegal basic type value. tok: %s", m.tok)
+	}
 
 	m.next()
 	m.expectSemi() // call before accessing m.lastLineComment
 
-	if m.lastLineComment != nil {
-		exprEnd = m.lastLineComment.End().Offset
+	comment := m.lastLeadComment
+
+	exprStart := pos.Offset
+	if doc != nil {
+		exprStart = doc.Pos().Offset
+	}
+
+	exprEnd := value.End().Offset
+	if comment != nil {
+		exprEnd = comment.End().Offset
 	}
 
 	assignDecl := &ast.AssignmentDecl{
 		Decl: ast.Decl{
 			Expr: m.src[exprStart : exprEnd+1],
 			Pos:  pos,
-			End:  ast.NewTokenPos(pos.FilePos, valuePos.Offset+len(valueLit)),
+			End:  ast.NewTokenPos(pos.FilePos, value.Pos.Offset+len(value.Value)),
 		},
 		Doc:     m.lastLeadComment,
 		Comment: m.lastLineComment,
@@ -427,15 +438,23 @@ func (m *Parser) parseAssignment() (decl ast.IDecl) {
 				Pos:  pos,
 				Name: lit,
 			},
-			Value: &ast.BasicLit{
-				Pos:   valuePos,
-				Kind:  valueTok,
-				Value: valueLit,
-			},
+			Value: value,
 		},
 	}
 	m.idlFile.AddAssign(assignDecl)
 	return assignDecl
+}
+
+func IsBasicLitKind(tok ast.Token) bool {
+	switch tok {
+	case ast.INT,
+		ast.FLOAT,
+		ast.IMAG,
+		ast.CHAR,
+		ast.STRING:
+		return true
+	}
+	return false
 }
 
 func (m *Parser) parseModel() (decl ast.IDecl) {
@@ -814,8 +833,8 @@ func (m *Parser) parseRest() (decl ast.IDecl) {
 	name := m.parseIdent()
 	httpMethod := m.parseIdent()
 
-	if !HttpMethodMap[httpMethod.Name] {
-		m.errorf(httpMethod.Pos, "unknown http method %s. available: %s", httpMethod.Name, HttpMethods)
+	if !ast.HttpMethodMap[httpMethod.Name] {
+		m.errorf(httpMethod.Pos, "unknown http method %s. available: %s", httpMethod.Name, ast.HttpMethods)
 	}
 
 	if m.tok != ast.STRING {
@@ -894,27 +913,6 @@ func (m *Parser) parseRest() (decl ast.IDecl) {
 	decl = restDecl
 	m.idlFile.AddRest(restDecl)
 	return
-}
-
-var HttpMethods = []string{
-	"GET",
-	"HEAD",
-	"POST",
-	"PUT",
-	"PATCH",
-	"DELETE",
-	"CONNECT",
-	"OPTIONS",
-	"TRACE",
-	"ANY",
-}
-
-var HttpMethodMap = map[string]bool{}
-
-func init() {
-	for _, method := range HttpMethods {
-		HttpMethodMap[method] = true
-	}
 }
 
 func (m *Parser) checkRestReq(reqType *ast.ModelType) (req *ast.RestReq) {
@@ -1014,8 +1012,55 @@ func (m *Parser) parseGrpc() (decl ast.IDecl) {
 }
 
 func (m *Parser) parseWs() (decl ast.IDecl) {
-	// TODO temp
+	pos := m.pos
+	doc := m.lastLeadComment
 	m.next()
+	name := m.parseIdent()
+	direction := m.parseIdent()
+
+	if !ast.WsDirectionMap[direction.Name] {
+		m.errorf(direction.Pos, "unknown ws message direction %s. available: %s", direction, ast.WsDirections)
+	}
+
+	msgKind := &ast.ValueLit{
+		Pos:   m.pos,
+		Tok:   m.tok,
+		Value: m.lit,
+	}
+	if !IsBasicLitKind(m.tok) && m.tok != ast.IDENT {
+		m.errorf(m.pos, "illegal ws msg code. tok: %s", m.tok)
+	}
+
+	m.next()
+
+	msg := m.parseType()
+	m.expectSemi()
+	comment := m.lastLineComment
+
+	exprStart := pos.Offset
+	exprEnd := msg.End().Offset
+	if doc != nil {
+		exprStart = doc.Pos().Offset
+	}
+
+	if comment != nil {
+		exprEnd = comment.End().Offset
+	}
+
+	wsDecl := &ast.WsDecl{
+		Decl: ast.Decl{
+			Expr: m.src[exprStart : exprEnd+1],
+			Pos:  pos,
+			End:  msg.End(),
+		},
+		Name:      name,
+		Direction: direction,
+		MsgKind:   msgKind,
+		Msg:       msg,
+	}
+	decl = wsDecl
+	m.idlFile.AddWs(wsDecl)
+
 	return
 }
 

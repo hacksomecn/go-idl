@@ -1,0 +1,9 @@
+ws Hello UP 100 {
+}
+
+ws Hello UP "heartbeat" {
+}
+
+ws Hello UP HEARTBEAT {
+    A string `json:"a"`
+}

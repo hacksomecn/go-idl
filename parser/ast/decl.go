@@ -58,6 +58,10 @@ type BasicLit struct {
 	Value string    // literal string; e.g. 42, 0x7f, 3.14, 1e-9, 2.4i, 'a', '\x7f', "foo" or `\m\n\o`
 }
 
+func (m *BasicLit) End() *TokenPos {
+	return NewTokenPos(m.Pos.FilePos, m.Pos.Offset+len(m.Value))
+}
+
 // A Comment node represents a single //-style or /*-style comment.
 //
 // The Text field contains the comment text without carriage returns (\r) that
@@ -195,6 +199,10 @@ func (m *GrpcDecl) Help() string {
 
 type WsDecl struct {
 	Decl
+	Name      *Ident    `json:"name"`
+	Direction *Ident    `json:"direction"` // UP、DOWN
+	MsgKind   *ValueLit `json:"msg_kind"`
+	Msg       IType     `json:"msg"`
 }
 
 func (m *WsDecl) Help() string {
@@ -219,4 +227,36 @@ type DecoratorDecl struct {
 
 func (m *DecoratorDecl) Help() string {
 	return `format: @<DECORATOR_NAME> decorator content text`
+}
+
+var HttpMethods = []string{
+	"GET",
+	"HEAD",
+	"POST",
+	"PUT",
+	"PATCH",
+	"DELETE",
+	"CONNECT",
+	"OPTIONS",
+	"TRACE",
+	"ANY",
+}
+
+var HttpMethodMap = map[string]bool{}
+
+var WsDirections = []string{
+	"UP",
+	"Down",
+}
+
+var WsDirectionMap = map[string]bool{}
+
+func init() {
+	for _, method := range HttpMethods {
+		HttpMethodMap[method] = true
+	}
+
+	for _, direction := range WsDirections {
+		WsDirectionMap[direction] = true
+	}
 }

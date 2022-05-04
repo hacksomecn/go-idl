@@ -85,3 +85,8 @@ func (m *IdlFile) AddGrpc(grpc *GrpcDecl) {
 	m.Grpcs = append(m.Grpcs, grpc)
 	m.Decls = append(m.Decls, grpc)
 }
+
+func (m *IdlFile) AddWs(ws *WsDecl) {
+	m.Wss = append(m.Wss, ws)
+	m.Decls = append(m.Decls, ws)
+}
