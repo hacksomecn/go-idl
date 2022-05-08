@@ -649,10 +649,12 @@ func (m *Parser) parseField() (field *ast.ModelField) {
 		typ = m.parsePointerType()
 		name = typ.TypeNameIdent()
 		embedded = true
+
 	} else {
 		m.errorf(pos, "unsupported tok for field. %s", m.tok)
 	}
 
+	// field tag
 	var tag *ast.FieldTag
 	if m.tok == ast.STRING {
 		tag = &ast.FieldTag{
@@ -665,6 +667,22 @@ func (m *Parser) parseField() (field *ast.ModelField) {
 		m.next()
 	}
 
+	var fieldNum *ast.BasicLit
+	// field num
+	if m.tok == ast.ASSIGN { // field num
+		m.next()
+		if m.tok != ast.INT {
+			m.errorf(m.pos, "field num should be integer, cur: %s", m.tok)
+		} else {
+			fieldNum = &ast.BasicLit{
+				Pos:   m.pos,
+				Kind:  m.tok,
+				Value: m.lit,
+			}
+			m.next()
+		}
+	}
+
 	m.expectSemi() // end expression, call before accessing p.linecomment
 
 	field = &ast.ModelField{
@@ -674,6 +692,7 @@ func (m *Parser) parseField() (field *ast.ModelField) {
 		Name:     name,
 		Type:     typ,
 		Tag:      tag,
+		Num:      fieldNum,
 		Exported: IsExported(name.Name),
 		Embedded: embedded,
 	}

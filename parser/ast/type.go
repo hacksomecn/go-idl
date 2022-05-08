@@ -83,6 +83,7 @@ type ModelField struct {
 	Name    *Ident    // field name
 	Type    IType     // field type
 	Tag     *FieldTag // field tag
+	Num     *BasicLit // field number. Required for protobuf, optional for normal go struct field.
 
 	// Exported reports whether the object is exported (starts with a capital letter).
 	// It doesn't take into account whether the object is in a local (function) scope

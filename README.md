@@ -1,6 +1,9 @@
 # go-idl
 go-idl is a micro service api definition and generation tool.
 
+## dependency
+- Extended protoc-gen-go. https://github.com/hacksomecn/protobuf-go/cmd/protoc-gen-go
+
 ## IDL specification
 
 ### specification describe symbol
@@ -18,6 +21,11 @@ declare idl syntax specification version.
 syntax = "v0.1.0" // TODO 版本检查
 ```
 
+### protobuf_on
+protobuf_on=true: (default) It is required in grpc API. Generate model into protobuf v3 message, and model field must declare field number
+protobuf_on=false: It is optional in rest and ws API. Generate model into normal go structs. 
+If your service don't support grpc now or in feature, you can set protobuf=false to make go source code more clear.
+
 ### comment
 ```
 // single line comment
@@ -32,11 +40,13 @@ multiple line comment
 TODO
 
 ### model
+According protobuf_on=true|false, model will be parsed into protobuf message or normal go struct. 
+It is required for grpc API, and is optional for rest、ws API
 ```
 model User {
-    Id string `json:"id"`
-    Name string `json:"name"`
-    Address string `json:"address"`
+    Id string `json:"id"` = 1
+    Name string `json:"name"` = 2
+    Address string `json:"address"` = 3
 }
 ```
 
@@ -77,9 +87,11 @@ rest <UpdateUserInfo> <GET|HEAD|POST|PUT|PATCH|DELETE|CONNECT|OPTIONS|TRACE|ANY>
 ```
 grpc <GetUserInfoHandler> {
     req GetUserInfoReq {
+        Id int64 `json:"id"` = 1
     }
     
     resp GetUserInfoResp {
+        Name string `json:"name"` = 1
     }
 }
 ```

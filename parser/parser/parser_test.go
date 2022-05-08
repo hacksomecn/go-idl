@@ -183,6 +183,34 @@ func TestParseFileModel(t *testing.T) {
 	}
 }
 
+func TestParseFieldNum(t *testing.T) {
+	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/model_field_num.gidl", "")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	file := files[0]
+	parser, err := NewParser(file)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	idlFile := parser.parseFile()
+	err = parser.errors.Err()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for _, model := range idlFile.Models {
+		for _, field := range model.Spec.Fields {
+			fmt.Println(field.Name.Name, field.Num.Value)
+		}
+	}
+}
+
 func TestParseService(t *testing.T) {
 	files, _, err := scanner.ScanFiles("/Users/hao/Documents/Projects/Github/go-idl/example/idlfile/service.gidl", "")
 	if err != nil {

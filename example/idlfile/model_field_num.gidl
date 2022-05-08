@@ -1,0 +1,4 @@
+model ProtoMessage {
+    Id string `json:"id"` = 1
+    Name string `json:"name"` = 2
+}
